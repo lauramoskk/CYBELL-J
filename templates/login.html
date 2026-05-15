@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CYBELL-J - Logar</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+<body>
+    <!-- NAVBAR -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-logo">
+                CYBELL-J
+            </div>
+            <ul class="nav-links">
+                <li>
+                    <a href="/dashboard">
+                        Dashboard
+                    </a>
+                </li>
+                <li>
+                    <button class="nav-login-btn" onclick="window.location.href='/register'">
+                        Registrar
+                    </button>
+                </li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- MAIN -->
+    <main class="container">
+        <!-- LOGAR -->
+        <section class="login-section">
+            <div class="login-card">
+                <h1>BEM-VINDO</h1>
+                <form id="loginForm" method="POST">
+                    <!-- USUÁRIO -->
+                    <div class="input-box">
+                        <label>Usuário</label>
+                        <div class="input-wrapper">
+                            <i class="fa-solid fa-user"></i>
+                            <input type="text" name="username" placeholder="Digite seu usuário">
+                        </div>
+                    </div>
+                    <!-- SENHA -->
+                    <div class="input-box">
+                        <label>Senha</label>
+                        <div class="input-wrapper">
+                            <i class="fa-solid fa-lock"></i>
+                            <input type="password" name="password" id="password" placeholder="Digite sua senha">
+                            <i class="fa-solid fa-eye toggle-password" id="togglePassword"></i>
+                        </div>
+                    </div>
+                    <p class="login-redirect">
+                        Não possui uma conta?
+                        <a href="/register">
+                            Registre-se
+                        </a>
+                    </p>
+                    {% with messages = get_flashed_messages(with_categories=true) %}
+                        {% if messages %}
+                            {% for category, message in messages %}
+                                <div class="flash-message {{ category }}">
+                                    {{ message }}
+                                </div>
+                            {% endfor %}
+                        {% endif %}
+                    {% endwith %}
+                    <!-- BOTÃO -->
+                    <button type="submit">
+                        ENTRAR
+                    </button>
+                </form>
+            </div>
+        </section>
+        <!-- IMAGEM -->
+        <section class="image-section">
+            <img src="/static/images/undraw_remotely_p27a.svg" alt="Security Illustration">
+        </section>
+    </main>
+    <script src="/static/js/script.js"></script>
+</body>
+</html>

@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CYBELL-J - Registrar</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+<body>
+    <!-- NAVBAR -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-logo">
+                CYBELL-J
+            </div>
+            <ul class="nav-links">
+                <li>
+                    <a href="/dashboard">
+                        Dashboard
+                    </a>
+                </li>
+                <li>
+                    <button class="nav-login-btn" onclick="window.location.href='/login'">
+                        Logar
+                    </button>
+                </li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- MAIN -->
+    <main class="container">
+        <!-- REGISTRAR -->
+        <section class="login-section">
+            <div class="login-card">
+                <h1>REGISTRE-SE</h1>
+                <form id="registerForm" method="POST">
+                    <!-- USUÁRIO -->
+                    <div class="input-box">
+                        <label>Usuário</label>
+                        <div class="input-wrapper">
+                            <i class="fa-solid fa-user"></i>
+                            <input type="text" name="username" placeholder="Digite seu usuário">
+                        </div>
+                    </div>
+
+                    <!-- SENHA -->
+                    <div class="input-box">
+                        <label>Senha</label>
+                        <div class="input-wrapper">
+                            <i class="fa-solid fa-lock"></i>
+                            <input type="password" name="password" id="password" placeholder="Digite sua senha">
+                            <i class="fa-solid fa-eye toggle-password" id="togglePassword"></i>
+                        </div>
+                    </div>
+
+                    <!-- REDIRECT -->
+                    <p class="login-redirect">
+                        Já possui uma conta?
+                        <a href="/login">
+                            Faça login
+                        </a>
+                    </p>
+
+                    {% with messages = get_flashed_messages(with_categories=true) %}
+                        {% if messages %}
+                            {% for category, message in messages %}
+                                <div class="flash-message {{ category }}">
+                                    {{ message }}
+                                </div>
+                            {% endfor %}
+                        {% endif %}
+                    {% endwith %}
+
+                    <!-- BOTÃO -->
+                    <button type="submit">
+                        REGISTRAR
+                    </button>
+                </form>
+            </div>
+        </section>
+
+        <!-- IMAGEM -->
+        <section class="image-section">
+            <img src="/static/images/undraw_work-time_1ogn.svg" alt="Security Illustration">
+        </section>
+    </main>
+    <script src="/static/js/script.js"></script>
+</body>
+</html>

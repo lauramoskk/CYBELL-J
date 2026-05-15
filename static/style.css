@@ -1,0 +1,406 @@
+/* Reset básico para remover espaçamentos padrões e garantir um comportamento consistente */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+/* Variáveis globais utilizadas no sistema */
+:root {
+    --primary-color: #4f46e5;
+    --primary-light: #818cf8;
+    --text-color: #1e293b;
+    --secondary-text: #64748b;
+    --background-color: #f7f8fc;
+    --card-background: #dfe6f9;
+}
+
+/* BODY */
+/* Estrutura principal da página */
+body {
+    font-family: Arial, Helvetica, sans-serif;
+    background: var(--background-color);
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: var(--text-color);
+    padding-top: 100px;
+}
+
+/* Container principal que separa o formulário da imagem */
+.container {
+    width: 1200px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 120px;
+    padding: 40px;
+}
+
+/* NAVBAR */
+/* Navbar fixa no topo da página */
+.navbar {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    margin-top: 40px;
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 1000;
+}
+
+/* Container interno da navbar */
+.nav-container {
+    width: 900px;
+    max-width: 95%;
+    height: 70px;
+    background: white;
+    border-radius: 50px;
+    padding: 0 28px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+    border: 1px solid rgba(0,0,0,0.04);
+}
+
+/* Nome/logo do sistema */
+.nav-logo {
+    font-size: 20px;
+    font-weight: bold;
+    color: var(--text-color);
+    padding: 0 10px;
+}
+
+/* Lista de links da navbar */
+.nav-links {
+    display: flex;
+    align-items: center;
+    gap: 38px;
+    list-style: none;
+}
+
+.nav-links li {
+    display: flex;
+    align-items: center;
+}
+
+/* Links padrão da navbar */
+.nav-links a {
+    text-decoration: none;
+    color: var(--secondary-text);
+    font-size: 15px;
+    font-weight: 500;
+    transition: color 0.3s;
+}
+
+.nav-links a:hover {
+    color: var(--primary-color);
+}
+
+/* Botão principal utilizado na navbar */
+.nav-login-btn {
+    height: 42px;
+    padding: 0 22px;
+    border: none;
+    border-radius: 30px;
+    background: linear-gradient(
+        90deg,
+        var(--primary-light),
+        var(--primary-color)
+    );
+    color: white;
+    font-size: 14px;
+    font-weight: bold;
+    cursor: pointer;
+    transition:
+        transform 0.3s,
+        box-shadow 0.3s;
+    width: auto;
+    margin-top: 0;
+}
+
+.nav-login-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 8px 18px rgba(79,70,229,0.25);
+}
+
+/* Espaçamento do ícone dentro do botão */
+.nav-login-btn i {
+    margin-right: 8px;
+}
+
+/* Área responsável pelo formulário */
+.login-section {
+    width: 420px;
+}
+
+/* Card principal de login/registro */
+.login-card {
+    background: var(--card-background);
+    padding: 60px 45px;
+    border-radius: 25px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.05);
+}
+
+/* Título principal do card */
+.login-card h1 {
+    text-align: center;
+    margin-bottom: 50px;
+    color: #1d4ed8;
+    font-size: 42px;
+    letter-spacing: 2px;
+}
+
+/* Texto de redirecionamento entre login/register */
+.login-redirect {
+    text-align: center;
+    margin-top: 22px;
+    font-size: 14px;
+    color: var(--secondary-text);
+}
+
+.login-redirect a {
+    color: var(--primary-color);
+    text-decoration: none;
+    font-weight: bold;
+    transition: opacity 0.3s;
+}
+
+.login-redirect a:hover {
+    opacity: 0.7;
+}
+
+/* Estrutura dos campos do formulário */
+.input-box {
+    margin-bottom: 28px;
+}
+
+/* Labels dos inputs */
+.input-box label {
+    display: block;
+    margin-bottom: 12px;
+    color: #1e3a8a;
+    font-weight: bold;
+    font-size: 18px;
+}
+
+/* Wrapper utilizado para alinhar ícones e inputs */
+.input-wrapper {
+    display: flex;
+    align-items: center;
+    border-bottom: 2px solid #1d4ed8;
+    padding-bottom: 10px;
+}
+
+/* Ícones dos inputs */
+.input-wrapper i {
+    color: var(--secondary-text);
+    font-size: 18px;
+    margin-right: 12px;
+}
+
+/* Campos de entrada */
+.input-wrapper input {
+    width: 100%;
+    border: none;
+    background: transparent;
+    outline: none;
+    font-size: 15px;
+    color: #334155;
+}
+
+/* Botão principal do formulário */
+.login-card button {
+    width: 100%;
+    height: 58px;
+    border: none;
+    border-radius: 10px;
+    background: linear-gradient(
+        90deg,
+        var(--primary-light),
+        var(--primary-color)
+    );
+    color: white;
+    font-size: 18px;
+    font-weight: bold;
+    cursor: pointer;
+    transition:
+        transform 0.3s,
+        box-shadow 0.3s;
+    letter-spacing: 1px;
+    margin-top: 54px;
+}
+
+.login-card button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 20px rgba(79,70,229,0.2);
+}
+
+/* Área responsável pela imagem lateral */
+.image-section {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+}
+
+/* Imagem principal */
+.image-section img {
+    width: 100%;
+    max-width: 650px;
+}
+
+/* Ícone utilizado para mostrar/esconder senha */
+.toggle-password {
+    cursor: pointer;
+    color: var(--secondary-text);
+    transition: color 0.3s;
+}
+
+.toggle-password:hover {
+    color: var(--primary-color);
+}
+
+/* Mensagens de erro e sucesso */
+.flash-message {
+    width: 100%;
+    padding: 14px;
+    border-radius: 10px;
+    margin-top: 25px;
+    font-size: 14px;
+    text-align: center;
+    font-weight: 500;
+    transition: 0.3s;
+    opacity: 1;
+}
+
+/* Mensagem de erro */
+.flash-message.error {
+    background: #fee2e2;
+    color: #b91c1c;
+    border: 1px solid #fecaca;
+}
+
+/* Mensagem de sucesso */
+.flash-message.success {
+    background: #dcfce7;
+    color: #166534;
+    border: 1px solid #bbf7d0;
+}
+
+/* DASHBOARD */
+/* Container principal */
+.dashboard-container {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    padding: 40px;
+}
+
+/* Card principal */
+.dashboard-card {
+    width: 750px;
+    background: white;
+    border-radius: 25px;
+    padding: 45px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.05);
+}
+
+/* Título */
+.dashboard-card h1 {
+    font-size: 38px;
+    color: var(--text-color);
+    margin-bottom: 14px;
+}
+
+/* Texto */
+.dashboard-description {
+    color: var(--secondary-text);
+    margin-bottom: 35px;
+    line-height: 1.6;
+}
+
+/* Área de teste */
+.behavior-test-box {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+/* Label */
+.behavior-test-box label {
+    font-size: 15px;
+    font-weight: bold;
+    color: var(--text-color);
+}
+
+/* Textarea */
+.behavior-input {
+    width: 100%;
+    min-height: 240px;
+    border: 2px solid #dbeafe;
+    border-radius: 18px;
+    padding: 20px;
+    resize: none;
+    outline: none;
+    font-size: 15px;
+    transition:
+        border 0.3s,
+        box-shadow 0.3s;
+}
+
+/* Focus */
+.behavior-input:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 5px rgba(79,70,229,0.08);
+}
+
+/* Ajustes para telas menores */
+@media (max-width: 1000px) {
+    body {
+        padding: 40px 20px;
+    }
+
+    .container {
+        flex-direction: column;
+        width: 100%;
+        gap: 50px;
+    }
+
+    .login-section {
+        width: 100%;
+        max-width: 450px;
+    }
+
+    .image-section img {
+        max-width: 400px;
+    }
+
+    .nav-container {
+        width: 95%;
+        padding: 0 20px;
+    }
+
+    .nav-links {
+        gap: 20px;
+    }
+
+    .dashboard-container {
+        padding: 20px;
+    }
+
+    .dashboard-card {
+        width: 100%;
+        padding: 30px;
+    }
+
+    .dashboard-card h1 {
+        font-size: 30px;
+    }
+
+    .behavior-input {
+        min-height: 180px;
+    }
+}
