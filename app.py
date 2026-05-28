@@ -8,7 +8,12 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from database import db
 from models import User
 
+from flasgger import Swagger
+
 app = Flask(__name__, static_folder="static", template_folder="templates")
+
+# Ativa documentação Swagger da API
+Swagger(app)
 
 # Configurações principais da aplicação
 app.config["SECRET_KEY"] = "cybell_secret"
@@ -43,12 +48,41 @@ with app.app_context():
 # Redireciona a rota principal para a página de login
 @app.route("/")
 def home():
+    """
+    Redirecionamento inicial
+    ---
+    tags:
+      - Navegação
+    responses:
+      302:
+        description: Redireciona o usuário para a página de login
+    """
     return redirect(url_for("login"))
 
 
 # Página responsável pelo login e autenticação do usuário
 @app.route("/login", methods=["GET", "POST"])
 def login():
+    """
+    Login de usuário
+    ---
+    tags:
+      - Autenticação
+    parameters:
+      - name: username
+        in: formData
+        type: string
+        required: true
+      - name: password
+        in: formData
+        type: string
+        required: true
+    responses:
+      200:
+        description: Página de login carregada com sucesso
+      302:
+        description: Usuário autenticado e redirecionado para dashboard
+    """
     if request.method == "POST":
         username = request.form.get("username").strip()
         password = request.form.get("password").strip()
@@ -85,6 +119,26 @@ def login():
 # Página responsável pelo cadastro de novos usuários
 @app.route("/register", methods=["GET", "POST"])
 def register():
+    """
+    Cadastro de usuário
+    ---
+    tags:
+      - Autenticação
+    parameters:
+      - name: username
+        in: formData
+        type: string
+        required: true
+      - name: password
+        in: formData
+        type: string
+        required: true
+    responses:
+      200:
+        description: Página de cadastro carregada com sucesso
+      302:
+        description: Usuário cadastrado e redirecionado para dashboard
+    """
     if request.method == "POST":
         username = request.form.get("username").strip()
         password = request.form.get("password").strip()
@@ -151,6 +205,17 @@ def register():
 @app.route("/dashboard")
 @login_required
 def dashboard():
+    """
+    Dashboard principal
+    ---
+    tags:
+      - Dashboard
+    responses:
+      200:
+        description: Dashboard exibido com sucesso
+      401:
+        description: Usuário não autenticado
+    """
     return render_template("dashboard.html", username=current_user.username)
 
 
@@ -158,6 +223,15 @@ def dashboard():
 @app.route("/logout")
 @login_required
 def logout():
+    """
+    Logout do usuário
+    ---
+    tags:
+      - Autenticação
+    responses:
+      302:
+        description: Usuário desconectado e redirecionado para login
+    """
     logout_user()
 
     return redirect(url_for("login"))
