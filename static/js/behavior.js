@@ -276,3 +276,38 @@ setInterval(() => {
 window.exportBehaviorData = exportBehaviorData;
 
 window.downloadBehaviorData = downloadBehaviorData;
+
+// ========================================
+// ENVIO PARA A API
+// ========================================
+// Envia o JSON com os dados capturados para o backend via POST
+function sendDataToBackend() {
+    const data = exportBehaviorData();
+    
+    // Só envia se houver dados novos para não sobrecarregar o servidor
+    if (data.keyboard.length === 0 && data.mouse.length === 0) {
+        return;
+    }
+
+    fetch('/api/behavior', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(result => {
+        console.log("Status do MongoDB:", result.message);
+        
+        // Opcional: Limpar os arrays depois de enviar com sucesso
+        // keyboardData.length = 0;
+        // mouseData.length = 0;
+    })
+    .catch(error => {
+        console.error("Erro ao enviar dados para a API:", error);
+    });
+}
+
+// Dispara o envio dos dados a cada 10 segundos
+setInterval(sendDataToBackend, 10000);
