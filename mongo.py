@@ -3,7 +3,6 @@ from pymongo import MongoClient
 # ==========================================
 # CONFIGURAÇÃO DO MONGODB NA NUVEM (ATLAS)
 # ==========================================
-# Cole a sua URI do MongoDB Atlas aqui (já com a senha real no lugar de <password>):
 URI_NUVEM = "mongodb+srv://laurasoliveira2018_db_user:o2vxITy0n9PLY37Q@cybell-j.rtnzeaw.mongodb.net/?appName=Cybell-J"
 
 # Conecta ao MongoDB Atlas
