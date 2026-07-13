@@ -353,9 +353,9 @@ function sendDataToBackend() {
     .then(result => {
         console.log("Status do MongoDB:", result.message);
         
-        // Opcional: Limpar os arrays depois de enviar com sucesso
-        // keyboardData.length = 0;
-        // mouseData.length = 0;
+        // Limpar os arrays depois de enviar com sucesso
+        keyboardData.length = 0;
+        mouseData.length = 0;
     })
     .catch(error => {
         console.error("Erro ao enviar dados para a API:", error);
