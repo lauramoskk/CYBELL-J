@@ -7,10 +7,9 @@ from werkzeug.security import generate_password_hash, check_password_hash
 
 from database import db
 from models import User
+from api import api_bp
 
 from flasgger import Swagger
-
-from pymongo import MongoClient
 
 app = Flask(__name__, static_folder="static", template_folder="templates")
 
@@ -27,14 +26,8 @@ app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 # Inicializa a conexão com o banco de dados
 db.init_app(app)
 
-# ==========================================
-# CONFIGURAÇÃO DO MONGODB (INTEGRANTE 2)
-# ==========================================
-# Conecta ao MongoDB local (certifique-se de ter o MongoDB instalado e rodando)
-mongo_client = MongoClient("mongodb://localhost:27017/")
-mongo_db = mongo_client["cybell_db"]
-keystrokes_collection = mongo_db["keystrokes"]
-mouse_events_collection = mongo_db["mouse_events"]
+# Registra as rotas da API separadas no arquivo api.py
+app.register_blueprint(api_bp)
 
 # Configuração do Flask-Login responsável pelo gerenciamento de sessões dos usuários
 login_manager = LoginManager()
@@ -246,67 +239,6 @@ def logout():
     logout_user()
 
     return redirect(url_for("login"))
-
-# ==========================================
-# ROTAS DA API BACKEND (INTEGRANTE 2)
-# ==========================================
-
-@app.route("/api/behavior", methods=["POST"])
-@login_required
-def receive_behavior_data():
-    """
-    Recebe dados comportamentais (teclado e mouse) do Front-end
-    ---
-    tags:
-      - Coleta de Dados
-    responses:
-      200:
-        description: Dados salvos com sucesso no MongoDB
-    """
-    data = request.get_json()
-
-    if not data:
-        return jsonify({"error": "Nenhum dado recebido"}), 400
-
-    keyboard_data = data.get("keyboard", [])
-    mouse_data = data.get("mouse", [])
-
-    # Salva no MongoDB se houver dados de teclado
-    if keyboard_data:
-        keystrokes_collection.insert_many(keyboard_data)
-
-    # Salva no MongoDB se houver dados de mouse
-    if mouse_data:
-        mouse_events_collection.insert_many(mouse_data)
-
-    return jsonify({"status": "success", "message": "Dados biométricos salvos no MongoDB"}), 200
-
-@app.route("/api/verify", methods=["POST"])
-@login_required
-def verify_ia():
-    """
-    Verificação da Inteligência Artificial (Esqueleto/Placeholder)
-    ---
-    tags:
-      - Inteligência Artificial
-    responses:
-      200:
-        description: Retorna o score de legitimidade calculado pela IA
-    """
-    # AQUI ENTRA A IA FUTURA: O sistema puxará os dados do banco e rodará o modelo (ex: Random Forest)
-    
-    # Para testes preliminares, retornamos um score simulado
-    fake_score = 0.92
-    limiar_seguranca = 0.80
-
-    status_sessao = "legitimo" if fake_score >= limiar_seguranca else "suspeito"
-
-    return jsonify({
-        "status": "success",
-        "score": fake_score,
-        "resultado": status_sessao,
-        "mensagem": "Análise comportamental concluída"
-    }), 200
 
 
 # Executa a aplicação em modo de desenvolvimento
