@@ -10,12 +10,32 @@ function getUsername() {
 const sessionId = crypto.randomUUID();
 
 // ========================================
+// DETECÇÃO DE DISPOSITIVO (MOUSE VS TRACKPAD)
+// ========================================
+// Variável de estado do dispositivo apontador (Padrão inicial: mouse)
+let currentPointingDevice = "mouse";
+
+// Monitora o comportamento da rolagem para diferenciar Rodinha de Mouse vs Trackpad
+document.addEventListener("wheel", (event) => {
+    // Trackpads costumam gerar valores decimais contínuos e pequenos (ex: 3.14, 1.05)
+    // Mouses tradicionais (rodinha) geram saltos inteiros padronizados (ex: 100, -100, 120)
+    const isFractional = !Number.isInteger(event.deltaY) && event.deltaY !== 0;
+    const isSmallStep = Math.abs(event.deltaY) > 0 && Math.abs(event.deltaY) < 20;
+
+    if (isFractional || isSmallStep) {
+        currentPointingDevice = "trackpad";
+    } else if (Math.abs(event.deltaY) >= 50) {
+        currentPointingDevice = "mouse";
+    }
+}, { passive: true });
+
+// ========================================
 // ARRAYS DE DADOS
 // ========================================
 // Armazena eventos de teclado
 const keyboardData = [];
 
-// Armazena eventos de mouse
+// Armazena eventos de mouse/trackpad
 const mouseData = [];
 
 // ========================================
@@ -39,6 +59,26 @@ const pressedKeys = {};
 // Armazena tempo de soltura da última tecla
 let lastKeyReleaseTime = null;
 
+// Função interna para anonimizar a tecla (Garante RNF04 - Privacidade)
+function getKeyCategory(event) {
+    // Teclas de controle essenciais para analisar o comportamento
+    const controlKeys = [
+        'Backspace', 'Enter', 'Space', 'Tab', 
+        'ShiftLeft', 'ShiftRight', 'ControlLeft', 'ControlRight',
+        'AltLeft', 'AltRight', 'CapsLock'
+    ];
+    
+    // Se for controle, retorna o nome físico do botão
+    if (controlKeys.includes(event.code)) {
+        return event.code;
+    }
+    // Se for letra ou número, substitui pelo rótulo genérico (não grava o caractere)
+    if (event.code.startsWith('Key')) return 'CHARACTER_KEY';
+    if (event.code.startsWith('Digit')) return 'DIGIT_KEY';
+    
+    return 'OTHER_KEY';
+}
+
 // Evento ao pressionar tecla
 document.addEventListener("keydown", (event) => {
     // Ignora campos de senha
@@ -46,9 +86,12 @@ document.addEventListener("keydown", (event) => {
         return;
     }
 
+    // Usa a categoria no lugar da letra exata
+    const keyLabel = getKeyCategory(event);
+
     // Evita duplicação caso a tecla permaneça pressionada
-    if (!pressedKeys[event.key]) {
-        pressedKeys[event.key] = Date.now();
+    if (!pressedKeys[keyLabel]) {
+        pressedKeys[keyLabel] = Date.now();
     }
 });
 
@@ -59,7 +102,10 @@ document.addEventListener("keyup", (event) => {
         return;
     }
 
-    const pressTime = pressedKeys[event.key];
+    // Usa a categoria no lugar da letra exata
+    const keyLabel = getKeyCategory(event);
+
+    const pressTime = pressedKeys[keyLabel];
 
     if (!pressTime) {
         return;
@@ -86,7 +132,7 @@ document.addEventListener("keyup", (event) => {
         session_id: sessionId,
         event_type: "keystroke",
         data: {
-            key: event.key,
+            key: keyLabel,
             press_time: pressTime,
             release_time: releaseTime,
             hold_time: holdTime,
@@ -105,11 +151,11 @@ document.addEventListener("keyup", (event) => {
     }
 
     // Remove tecla armazenada
-    delete pressedKeys[event.key];
+    delete pressedKeys[keyLabel];
 });
 
 // ========================================
-// MOVIMENTO DO MOUSE
+// MOVIMENTO DO MOUSE / TRACKPAD
 // ========================================
 // Evento de movimentação
 document.addEventListener("mousemove", (event) => {
@@ -122,6 +168,11 @@ document.addEventListener("mousemove", (event) => {
 
     lastMouseCapture = now;
 
+    // Trackpads costumam disparar sub-coordenadas flutuantes ao deslizar suavemente
+    if (!Number.isInteger(event.clientX) || !Number.isInteger(event.clientY)) {
+        currentPointingDevice = "trackpad";
+    }
+
     const mouseEvent = {
         user_id: getUsername(),
         session_id: sessionId,
@@ -130,7 +181,8 @@ document.addEventListener("mousemove", (event) => {
             timestamp: now,
             x: event.clientX,
             y: event.clientY,
-            event: "move"
+            event: "move",
+            device_type: currentPointingDevice // <- AQUI ESTÁ A IDENTIFICAÇÃO ENVIADA PARA A IA
         }
     };
 
@@ -146,7 +198,7 @@ document.addEventListener("mousemove", (event) => {
 });
 
 // ========================================
-// CLICK DO MOUSE
+// CLICK DO MOUSE / TRACKPAD
 // ========================================
 // Captura cliques do mouse
 document.addEventListener("click", (event) => {
@@ -173,7 +225,8 @@ document.addEventListener("click", (event) => {
             x: event.clientX,
             y: event.clientY,
             button: button,
-            event: "click"
+            event: "click",
+            device_type: currentPointingDevice // <- AQUI TAMBÉM INCLUI A DEFINIÇÃO DO DISPOSITIVO
         }
     };
 
