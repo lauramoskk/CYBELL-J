@@ -44,3 +44,38 @@ setTimeout(() => {
         }, 300);
     });
 }, 3000);
+
+// Cria e exibe uma mensagem de flash dinamicamente, reaproveitando o mesmo
+// estilo (.flash-message) usado no restante do sistema, e some sozinha
+// depois de alguns segundos, igual as mensagens renderizadas pelo servidor
+function showFlashMessage(container, text, type = "success") {
+    if (!container) return;
+
+    const message = document.createElement("div");
+    message.className = `flash-message ${type}`;
+    message.textContent = text;
+
+    container.appendChild(message);
+
+    setTimeout(() => {
+        message.style.opacity = "0";
+
+        setTimeout(() => {
+            message.remove();
+        }, 300);
+    }, 3000);
+}
+
+// Botão "Salvar Registro" do dashboard
+const saveRecordBtn = document.getElementById("saveRecordBtn");
+const dashboardFlashContainer = document.getElementById("dashboardFlashContainer");
+
+if (saveRecordBtn) {
+    saveRecordBtn.addEventListener("click", () => {
+        showFlashMessage(
+            dashboardFlashContainer,
+            "Registro salvo com sucesso! (Esse salvamento é ilustrativo — todos os dados biométricos são enviados automaticamente)",
+            "success"
+        );
+    });
+}

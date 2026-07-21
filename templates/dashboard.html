@@ -29,13 +29,51 @@
     <main class="dashboard-container">
         <div class="dashboard-card">
             <h1>Bem-vindo, {{ username }}</h1>
+            
+            <!-- SIMULADOR CORPORATIVO MANTENDO O DESIGN ORIGINAL -->
+            <p class="dashboard-description">Módulo de Trabalho: Preencha os dados abaixo para simular atividade e gerar biometria de teclado e mouse para a IA.</p>
     
-            <!-- ÁREA DE TESTE -->
             <div class="behavior-test-box">
-                <textarea class="behavior-input" placeholder="Digite algo para gerar eventos de teclado"></textarea>
+                <label>Nome do Cliente:</label>
+                <!-- Usei a classe behavior-input original, mas com altura menor para inputs simples -->
+                <input type="text" class="behavior-input" style="min-height: 45px; padding: 10px 20px;" placeholder="Ex: João da Silva">
+                
+                <label style="margin-top: 10px;">E-mail Corporativo:</label>
+                <input type="email" class="behavior-input" style="min-height: 45px; padding: 10px 20px;" placeholder="joao@empresa.com">
+
+                <label style="margin-top: 10px;">Observações do Atendimento (Use Ctrl+C e Ctrl+V aqui):</label>
+                <!-- Textarea mantendo o padrão exato da Laura -->
+                <textarea class="behavior-input" placeholder="Cole aqui o descritivo do chamado..."></textarea>
+                
+                <!-- Reutilizando a classe do botão da navbar para manter a coesão do design -->
+                <button id="saveRecordBtn" class="nav-login-btn" style="margin-top: 20px; width: 100%; height: 50px; font-size: 16px;">
+                    <i class="fa-solid fa-save"></i> Salvar Registro
+                </button>
+
+                <!-- Aqui o aviso de "registro salvo" é inserido dinamicamente, reutilizando .flash-message do resto do site -->
+                <div id="dashboardFlashContainer"></div>
             </div>
         </div>
     </main>
+
+    <!-- MODAL DE REAUTENTICAÇÃO (Oculto por padrão, mas usando as cores do seu CSS) -->
+    <div id="degradedTrustModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(30, 41, 59, 0.85); z-index: 9999; align-items: center; justify-content: center;">
+        <div style="background: var(--card-background); padding: 40px; border-radius: 25px; text-align: center; width: 450px; box-shadow: 0 10px 40px rgba(0,0,0,0.2);">
+            <i class="fa-solid fa-shield-halved" style="font-size: 45px; color: var(--primary-color); margin-bottom: 20px;"></i>
+            <h2 style="color: var(--text-color); margin-bottom: 15px; font-size: 24px;">Sessão Inativa ou Suspeita</h2>
+            <p style="color: var(--secondary-text); margin-bottom: 25px; font-size: 15px;">Não detectamos interações suficientes. Por favor, confirme sua identidade corporativa para continuar.</p>
+            
+            <div class="input-wrapper" style="background: white; border-radius: 10px; padding: 5px 15px; margin-bottom: 25px;">
+                <i class="fa-solid fa-lock"></i>
+                <input type="password" id="reauthPassword" placeholder="Digite sua senha" style="width: 100%; padding: 12px; border: none; outline: none; background: transparent;">
+            </div>
+            
+            <button class="nav-login-btn" onclick="verifyReauth()" style="width: 100%; height: 50px; font-size: 16px;">
+                <i class="fa-solid fa-unlock"></i> Desbloquear Sessão
+            </button>
+        </div>
+    </div>
+
     <script src="/static/js/script.js"></script>
     <script src="/static/js/behavior.js"></script>
 </body>
