@@ -44,11 +44,43 @@ body {
     width: 100%;
     display: flex;
     justify-content: center;
-    margin-top: 40px;
+    margin-top: 20px; /* Reduzi um pouco a margem para ficar mais equilibrado */
     position: fixed;
     top: 0;
     left: 0;
     z-index: 1000;
+    pointer-events: none; /* deixa a área vazia ao redor da pílula clicável para o conteúdo por trás */
+}
+
+.navbar .nav-container {
+    position: relative;
+    z-index: 1; /* garante que a pílula fique acima do fade abaixo */
+    pointer-events: auto; /* reativa cliques dentro da pílula */
+}
+
+/* Efeito "vidro fosco": em vez de cortar o conteúdo que rola por baixo da
+   navbar com uma linha reta, ele vai desaparecendo suavemente dentro de um
+   blur com fade (mesmo efeito usado em headers da Vercel, Linear, Apple, etc). */
+.navbar::before {
+    content: "";
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 140px; /* cobre a pílula + uma margem de transição */
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    background: linear-gradient(
+        to bottom,
+        rgba(247, 248, 252, 0.9) 0%,
+        rgba(247, 248, 252, 0.6) 55%,
+        rgba(247, 248, 252, 0) 100%
+    );
+    /* A máscara faz o blur/fundo em si também sumir gradualmente,
+       em vez de terminar numa borda reta visível */
+    -webkit-mask-image: linear-gradient(to bottom, black 0%, black 55%, transparent 100%);
+    mask-image: linear-gradient(to bottom, black 0%, black 55%, transparent 100%);
+    pointer-events: none;
 }
 
 /* Container interno da navbar */
@@ -252,6 +284,13 @@ body {
     max-width: 650px;
 }
 
+/* Esconde o ícone nativo de "mostrar senha" do Microsoft Edge,
+   para não duplicar com o nosso ícone customizado do Font Awesome */
+input[type="password"]::-ms-reveal,
+input[type="password"]::-ms-clear {
+    display: none;
+}
+
 /* Ícone utilizado para mostrar/esconder senha */
 .toggle-password {
     cursor: pointer;
@@ -297,6 +336,7 @@ body {
     display: flex;
     justify-content: center;
     padding: 40px;
+    padding-top: 130px;
 }
 
 /* Card principal */
