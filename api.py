@@ -1,25 +1,26 @@
 from flask import Blueprint, request, jsonify
-from flask_login import login_required
+from flask_login import login_required, current_user
 from mongo import keystrokes_collection, mouse_events_collection
+import time
 
 # Cria o Blueprint para as rotas de API
 api_bp = Blueprint("api", __name__)
-
-# ==========================================
-# ROTAS DA API BACKEND (INTEGRANTE 2)
-# ==========================================
 
 @api_bp.route("/api/behavior", methods=["POST"])
 @login_required
 def receive_behavior_data():
     """
-    Recebe dados comportamentais (teclado, mouse e atalhos) do Front-end
+    Recebe dados comportamentais (teclado e mouse) do Front-end com validação de segurança
     ---
     tags:
       - Coleta de Dados
     responses:
       200:
-        description: Dados salvos com sucesso no MongoDB
+        description: Dados validados e salvos com sucesso no MongoDB
+      400:
+        description: Dados inválidos ou vazios
+      429:
+        description: Excesso de volume de eventos (Proteção Anti-Flood)
     """
     data = request.get_json()
 
@@ -29,73 +30,75 @@ def receive_behavior_data():
     keyboard_data = data.get("keyboard", [])
     mouse_data = data.get("mouse", [])
     shortcuts_data = data.get("shortcuts", [])
-    validated_shortcuts = []
 
-    for shortcut in shortcuts_data:
-        # Garante que o atalho tem os campos obrigatórios e que o hold_time é positivo (evita manipulação no front)
-        if "key" in shortcut and "timestamp" in shortcut:
-            hold_time = shortcut.get("hold_time", 0)
-            if hold_time >= 0:  # O tempo que o Ctrl ficou pressionado não pode ser negativo
-                validated_shortcuts.append({
-                    "key": shortcut.get("key"),
-                    "event_type": "shortcut",
-                    "hold_time": hold_time,
-                    "timestamp": shortcut.get("timestamp")
-                })
-
-    # 1. LÓGICA DE CONFIANÇA DEGRADADA (Janela Vazia)
-    if len(keyboard_data) == 0 and len(mouse_data) == 0 and len(shortcuts_data) == 0:
+    # 1. Validação de Janela Vazia (Confiança Degradada)
+    if not keyboard_data and not mouse_data and not shortcuts_data:
         return jsonify({
             "status": "empty_window", 
             "message": "Nenhum dado biométrico recebido nesta janela."
         }), 200
 
-    # 2. REGRA ANTI-BOT BÁSICA (Evitar injeção de scripts)
-    if len(mouse_data) > 10:
-        first_time = mouse_data[0].get("timestamp")
-        # Se todos os eventos de mouse tiverem exatamente o mesmo milissegundo, é um bot
-        all_same_time = all(m.get("timestamp") == first_time for m in mouse_data)
-        if all_same_time:
-            return jsonify({
-                "status": "bot_detected",
-                "message": "Atividade sintética detectada."
-            }), 403
+    # 2. Segurança: Proteção Anti-Flood / Anti-Bot (Limite de volume por lote)
+    if len(mouse_data) > 400 or len(keyboard_data) > 200:
+        return jsonify({
+            "status": "security_violation",
+            "message": "Volume excessivo de eventos detectado."
+        }), 429
 
-    # 3. COMPENSAÇÃO DINÂMICA DE PESOS
-    keyboard_weight = 0.5
-    mouse_weight = 0.5
-    shortcut_weight = 0.0
+    # 3. Sanitização e Vinculación Segura com o Usuário Logado
+    current_user_id = current_user.username
 
-    # Cenário A: Leitura/Navegação (Muito mouse, pouco teclado)
-    if len(keyboard_data) < 5 and len(mouse_data) > 20:
-        keyboard_weight = 0.1
-        mouse_weight = 0.9
+    sanitized_keyboard = []
+    for k in keyboard_data:
+        sanitized_keyboard.append({
+            "user": current_user_id,
+            "key": str(k.get("key", ""))[:5],
+            "event_type": str(k.get("event_type", "keydown")),
+            "timestamp": int(k.get("timestamp", time.time()))
+        })
 
-    # Cenário B: Uso pesado de atalhos (Copiar/Colar)
-    elif len(shortcuts_data) > 0 and len(keyboard_data) < 5:
-        keyboard_weight = 0.1
-        mouse_weight = 0.6
-        shortcut_weight = 0.3
-
-    # 4. SALVAMENTO NO MONGODB
-    if keyboard_data:
-        keystrokes_collection.insert_many(keyboard_data)
+    sanitized_mouse = []
+    for m in mouse_data:
+        x_val = float(m.get("x", 0.0))
+        y_val = float(m.get("y", 0.0))
         
-    if mouse_data:
-        mouse_events_collection.insert_many(mouse_data)
-        
-    # Atalhos podem ser salvos na coleção de keystrokes com tipo diferenciado
-    if shortcuts_data:
-        keystrokes_collection.insert_many(shortcuts_data)
+        # SEGURANÇA: Descarta coordenadas fora de uma tela convencional (ex: monitores de 4K até 3840x2160)
+        # Impedindo injeção de valores espaciais absurdos ou negativos inválidos
+        if 0 <= x_val <= 4000 and 0 <= y_val <= 3000:
+            sanitized_mouse.append({
+                "user": current_user_id,
+                "event_type": str(m.get("event_type", "")),
+                "x": x_val,
+                "y": y_val,
+                "timestamp": int(m.get("timestamp", time.time()))
+            })
+
+    sanitized_shortcuts = []
+    for s in shortcuts_data:
+        hold_time = float(s.get("hold_time", 0.0))
+        if hold_time >= 0:
+            sanitized_shortcuts.append({
+                "user": current_user_id,
+                "key": str(s.get("key", "")),
+                "event_type": "shortcut",
+                "hold_time": hold_time,
+                "timestamp": int(s.get("timestamp", time.time()))
+            })
+
+    # 4. Persistência Segura no MongoDB com Tratamento de Erros
+    try:
+        if sanitized_keyboard:
+            keystrokes_collection.insert_many(sanitized_keyboard)
+        if sanitized_mouse:
+            mouse_events_collection.insert_many(sanitized_mouse)
+        if sanitized_shortcuts:
+            keystrokes_collection.insert_many(sanitized_shortcuts)
+    except Exception as e:
+        return jsonify({"error": "Erro ao persistir dados no banco NoSQL", "details": str(e)}), 500
 
     return jsonify({
         "status": "success", 
-        "message": "Dados biométricos salvos no MongoDB",
-        "dynamic_weights": {
-            "keyboard": keyboard_weight,
-            "mouse": mouse_weight,
-            "shortcut": shortcut_weight
-        }
+        "message": "Dados biométricos validados e salvos no MongoDB"
     }), 200
 
 @api_bp.route("/api/verify", methods=["POST"])
@@ -110,9 +113,6 @@ def verify_ia():
       200:
         description: Retorna o score de legitimidade calculado pela IA
     """
-    # AQUI ENTRA A IA FUTURA: O sistema puxará os dados do banco e rodará o modelo
-    
-    # Para testes preliminares, retornamos um score simulado
     fake_score = 0.92
     limiar_seguranca = 0.80
 

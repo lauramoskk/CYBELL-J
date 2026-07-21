@@ -1,21 +1,17 @@
 from database import db
-
 from flask_login import UserMixin
+import time
 
-# Model responsável por representar os usuários cadastrados no sistema
 class User(UserMixin, db.Model):
     __tablename__ = "users"
 
-    # Identificador único do usuário
     id = db.Column(db.Integer, primary_key=True)
-
-    # Nome de usuário utilizado no login
-    # Não permite valores duplicados
-    username = db.Column( db.String(80), unique=True, nullable=False)
-
-    # Senha criptografada do usuário
+    username = db.Column(db.String(80), unique=True, nullable=False)
     password = db.Column(db.String(255), nullable=False)
+    
+    # NOVOS CAMPOS DE SEGURANÇA (Anti-Brute Force no Servidor)
+    failed_login_attempts = db.Column(db.Integer, default=0, nullable=False)
+    lockout_until = db.Column(db.Float, default=0.0, nullable=False)
 
-    # Representação textual utilizada principalmente para debug
     def __repr__(self):
         return f"<User {self.username}>"

@@ -2,11 +2,11 @@ let keyboardData = [];
 let mouseData = [];
 let shortcutsData = [];
 let ctrlPressTime = null;
-let idleCycles = 0; // Contador de inatividade
+let idleCycles = 0;
 
-// 1. CAPTURA DE TECLADO E ATALHOS
+// Captura de Teclado e Atalhos (Ctrl+C, Ctrl+V, etc.)
 document.addEventListener('keydown', (event) => {
-    if (!event.isTrusted) return; // Anti-Bot
+    if (!event.isTrusted) return; // Anti-bot básico por evento nativo
 
     const timestamp = Date.now();
 
@@ -14,7 +14,6 @@ document.addEventListener('keydown', (event) => {
         ctrlPressTime = timestamp;
     }
 
-    // Captura Ctrl+C, Ctrl+V, Ctrl+X, Ctrl+A
     if (event.ctrlKey && ['c', 'v', 'x', 'a'].includes(event.key.toLowerCase())) {
         const holdTime = ctrlPressTime ? (timestamp - ctrlPressTime) : 0;
         shortcutsData.push({
@@ -39,7 +38,7 @@ document.addEventListener('keyup', (event) => {
     }
 });
 
-// 2. CAPTURA DE MOUSE (Movimento e Clique)
+// Captura de Mouse (Movimento e Cliques)
 document.addEventListener('mousemove', (event) => {
     if (!event.isTrusted) return;
     mouseData.push({
@@ -54,14 +53,14 @@ document.addEventListener('click', (event) => {
     if (!event.isTrusted) return;
     mouseData.push({
         event_type: 'mouse_click',
-        button: event.button, // 0 = Esquerdo, 1 = Meio, 2 = Direito
+        button: event.button,
         x: event.clientX,
         y: event.clientY,
         timestamp: Date.now()
     });
 });
 
-// 3. ENVIO DE DADOS PARA A API
+// Envio periódico para a API (A cada 10 segundos)
 function sendDataToBackend() {
     const payload = {
         keyboard: keyboardData,
@@ -76,35 +75,31 @@ function sendDataToBackend() {
     })
     .then(response => response.json())
     .then(data => {
-        // GATILHO: Verifica se a janela veio vazia (Confiança Degradada)
         if (data.status === 'empty_window') {
             idleCycles++;
-            if (idleCycles >= 3) { // 3 ciclos de 10s (30 segundos)
-                document.getElementById('degradedTrustModal').style.display = 'flex';
+            if (idleCycles >= 3) { // 3 ciclos de 10s = 30 segundos ocioso
+                const modal = document.getElementById('degradedTrustModal');
+                if (modal) modal.style.display = 'flex';
             }
-        } else if (data.status === 'bot_detected') {
-            alert("Atividade suspeita detectada pelo sistema de segurança.");
         } else {
-            idleCycles = 0; // Zera o contador se houve atividade real
+            idleCycles = 0;
         }
     })
-    .catch(error => console.error('Erro na comunicação com a API:', error));
+    .catch(error => console.error('Erro ao enviar dados comportamentais:', error));
 
-    // Limpa os arrays para o próximo ciclo
     keyboardData = [];
     mouseData = [];
     shortcutsData = [];
 }
 
-// 4. FUNÇÃO DO MODAL DE DESBLOQUEIO
 function verifyReauth() {
     const pass = document.getElementById('reauthPassword').value;
     if (pass.length > 0) {
-        document.getElementById('degradedTrustModal').style.display = 'none';
+        const modal = document.getElementById('degradedTrustModal');
+        if (modal) modal.style.display = 'none';
         document.getElementById('reauthPassword').value = '';
-        idleCycles = 0; // Reinicia a contagem
+        idleCycles = 0;
     }
 }
 
-// 5. INICIA O LOOP (10 segundos)
 setInterval(sendDataToBackend, 10000);

@@ -11,6 +11,8 @@ from api import api_bp
 
 from flasgger import Swagger
 
+import time
+
 app = Flask(__name__, static_folder="static", template_folder="templates")
 
 # Ativa documentação Swagger da API
@@ -67,55 +69,48 @@ def home():
 # Página responsável pelo login e autenticação do usuário
 @app.route("/login", methods=["GET", "POST"])
 def login():
-    """
-    Login de usuário
-    ---
-    tags:
-      - Autenticação
-    parameters:
-      - name: username
-        in: formData
-        type: string
-        required: true
-      - name: password
-        in: formData
-        type: string
-        required: true
-    responses:
-      200:
-        description: Página de login carregada com sucesso
-      302:
-        description: Usuário autenticado e redirecionado para dashboard
-    """
     if request.method == "POST":
-        username = request.form.get("username").strip()
-        password = request.form.get("password").strip()
+        username = request.form.get("username", "").strip()
+        password = request.form.get("password", "").strip()
 
-        # Verifica se os campos foram preenchidos
         if not username or not password:
             flash("Preencha usuário e senha.", "error")
-
             return redirect(url_for("login"))
 
-        # Verifica se o usuário informado existe no banco de dados
         user = User.query.filter_by(username=username).first()
 
         if not user:
             flash("Usuário não encontrado.", "error")
-
             return redirect(url_for("login"))
 
-        # Compara a senha digitada com o hash salvo no banco
-        password_correct = check_password_hash(user.password, password)
-
-        if not password_correct:
-            flash("Senha incorreta.", "error")
-
+        # VERIFICAÇÃO DE SEGURANÇA: Bloqueio por Força Bruta no Servidor
+        current_time = time.time()
+        if user.lockout_until > current_time:
+            remaining_seconds = int(user.lockout_until - current_time)
+            flash(f"Conta temporariamente bloqueada por segurança. Tente novamente em {remaining_seconds} segundos.", "error")
             return redirect(url_for("login"))
 
-        # Realiza o login do usuário e cria a sessão automaticamente
+        # Compara a senha
+        if not check_password_hash(user.password, password):
+            user.failed_login_attempts += 1
+            
+            # Se errar 5 vezes, bloqueia por 30 segundos no servidor
+            if user.failed_login_attempts >= 5:
+                user.lockout_until = current_time + 30
+                db.session.commit()
+                flash("Muitas tentativas falhas. Conta bloqueada por 30 segundos.", "error")
+            else:
+                db.session.commit()
+                flash(f"Senha incorreta. Tentativa {user.failed_login_attempts}/5.", "error")
+                
+            return redirect(url_for("login"))
+
+        # Sucesso: Reseta os contadores de falha
+        user.failed_login_attempts = 0
+        user.lockout_until = 0.0
+        db.session.commit()
+
         login_user(user)
-
         return redirect(url_for("dashboard"))
 
     return render_template("login.html")

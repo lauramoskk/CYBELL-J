@@ -1,9 +1,15 @@
+import os
 from pymongo import MongoClient
+from dotenv import load_dotenv
 
-# ==========================================
-# CONFIGURAÇÃO DO MONGODB NA NUVEM (ATLAS)
-# ==========================================
-URI_NUVEM = "mongodb+srv://laurasoliveira2018_db_user:o2vxITy0n9PLY37Q@cybell-j.rtnzeaw.mongodb.net/?appName=Cybell-J"
+# Carrega as variáveis de ambiente do arquivo .env
+load_dotenv()
+
+# Pega a URI da variável de ambiente com segurança
+URI_NUVEM = os.getenv("MONGO_URI")
+
+if not URI_NUVEM:
+    raise ValueError("A variável de ambiente MONGO_URI não foi encontrada. Verifique o arquivo .env")
 
 # Conecta ao MongoDB Atlas
 mongo_client = MongoClient(URI_NUVEM)

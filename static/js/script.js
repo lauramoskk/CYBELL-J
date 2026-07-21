@@ -79,3 +79,27 @@ if (saveRecordBtn) {
         );
     });
 }
+
+// Proteção contra Brute Force no Client-Side (Login)
+const loginForm = document.getElementById("loginForm");
+
+if (loginForm) {
+    loginForm.addEventListener("submit", (e) => {
+        let failedAttempts = parseInt(localStorage.getItem("login_failures") || "0");
+        let lockoutUntil = parseInt(localStorage.getItem("lockout_until") || "0");
+        const now = Date.now();
+
+        // Verifica se o usuário está bloqueado
+        if (now < lockoutUntil) {
+            e.preventDefault();
+            const remainingSeconds = Math.ceil((lockoutUntil - now) / 1000);
+            alert(`Muitas tentativas falhas. Aguarde ${remainingSeconds} segundos para tentar novamente.`);
+            return;
+        }
+
+        // Se o login falhar, o Flask vai recarregar a página com erro. 
+        // Podemos incrementar a falha aqui ou capturar o erro da rota.
+        // Uma forma simples para o protótipo: toda vez que submete, incrementa se não houver sucesso imediato,
+        // ou controlamos via contador de erros na tela de login.
+    });
+}
