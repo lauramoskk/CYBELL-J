@@ -1,187 +1,101 @@
-# Guia simples para testar o sistema CYBELL-J
+# Guia de Instalação e Testes do Sistema CYBELL-J
 
-## Pré-requisitos
+## Pré-requisitos e Configuração de Ambiente
 
-Para o funcionamento da captura contínua de dados, certifique-se de ter o **MongoDB Community Server** instalado e rodando localmente em sua máquina (porta 27017), bem como o **MongoDB Compass** para a visualização do banco de dados.
+Para o funcionamento da captura contínua e persistência de dados em nuvem, este projeto utiliza o **MongoDB Atlas** e variáveis de ambiente.
+
+1. Crie um arquivo chamado **`.env`** na raiz do projeto (na mesma pasta do `app.py`).
+2. Adicione sua URI do MongoDB Atlas no arquivo `.env`:
+   ```env
+   MONGO_URI=sua_uri_do_mongodb_atlas_aqui
+
+_(Nota: O arquivo `.env` já está listado no `.gitignore` para proteger suas credenciais de segurança)._
 
 ## 1. Instalar as dependências
 
-No terminal, execute:
-
+No terminal, execute o comando para instalar todas as bibliotecas necessárias (incluindo o suporte a variáveis de ambiente e banco NoSQL):
 ```
 pip install -r requirements.txt
 ```
 
-Caso ainda não exista um arquivo `requirements.txt`, instale manualmente:
-
-
-```
-pip install flask flask-sqlalchemy flask-login werkzeug pymongo
-```
-
-# 2. Executar o sistema
+## 2. Executar o sistema
 
 No terminal, execute:
+
 
 ```
 python app.py
 ```
 
-Se tudo estiver funcionando corretamente, aparecerá algo parecido com:
+Se tudo estiver funcionando corretamente, aparecerá a mensagem:
+
+
 
 ```
-Running on http://127.0.0.1:5000
+Running on [http://127.0.0.1:5000](http://127.0.0.1:5000)
 ```
 
 Abra o navegador e acesse:
 
 ```
-http://127.0.0.1:5000
+[http://127.0.0.1:5000](http://127.0.0.1:5000)
 ```
 
-# 3. Testar o registro de usuário
+## 3. Testar o registro de usuário
 
-1.  Clique em "Registrar"
+1.  Clique em "Registrar".
     
-2.  Digite um usuário
+2.  Digite um usuário (de 3 a 20 caracteres, apenas letras, números e `_`).
     
-3.  Digite uma senha
+3.  Digite uma senha (mínimo de 6 caracteres).
     
-4.  Clique em "Registrar"
-    
-
-Validações implementadas:
-
--   Não permite campos vazios
-    
--   Não permite usuários duplicados
-    
--   Username deve ter entre 3 e 20 caracteres
-    
--   Username aceita apenas letras, números e _
-    
--   Senha deve possuir pelo menos 6 caracteres
-    
--   Senha é salva criptografada no banco
+4.  Clique em "Registrar".
     
 
-Após registrar:
+**Segurança implementada:**
 
--   o usuário é autenticado automaticamente
+-   Validação robusta de campos e formato no servidor.
     
--   o sistema redireciona para o dashboard
+-   As senhas são criptografadas com _hash_ seguro (`werkzeug.security`) antes de serem salvas no SQLite.
     
-
-# 4. Testar login
-
-1.  Faça logout
-    
-2.  Entre novamente usando:
+-   Após o cadastro, o usuário é autenticado automaticamente e redirecionado para o dashboard.
     
 
--   usuário cadastrado
+## 4. Testar login e Proteção Anti-Força Bruta
+
+1.  Faça logout e tente entrar novamente com suas credenciais.
     
--   senha cadastrada
+2.  **Nova Proteção no Servidor:** O sistema agora possui bloqueio ativo contra ataques de força bruta (_Brute Force_). Se houver 5 tentativas falhas consecutivas, a conta do usuário é temporariamente bloqueada por segurança no servidor.
     
 
-Validações implementadas:
+## 5. Testar o Dashboard e Simulador Corporativo
 
--   Verifica campos vazios
-    
--   Verifica se o usuário existe
-    
--   Verifica se a senha está correta
-    
--   Mantém sessão autenticada
-    
+Após logar, você será direcionado ao Dashboard, que conta com:
 
-# 5. Testar logout
-
-1.  Clique no botão "Sair"
+-   **Simulador de Trabalho:** Campos de preenchimento para simular rotinas corporativas.
     
-2.  O sistema encerrará a sessão
+-   **Captura Invisível de Comportamento:** Monitoramento contínuo em segundo plano (digitação, ritmo, posições de mouse e atalhos de edição como `Ctrl+C`, `Ctrl+V`, `Ctrl+X` e `Ctrl+A` com mensuração de _hold time_).
     
-3.  O usuário será redirecionado para login
+-   **Confiança Degradada:** Sistema de segurança por ociosidade que exibe um modal de reautenticação caso o usuário fique inativo por vários ciclos.
     
 
-# 6. Testar captura comportamental
+## 6. Verificar persistência no MongoDB Atlas (Nuvem)
 
-Após logar:
+O sistema envia automaticamente os blocos de eventos biométricos coletados para a API a cada 10 segundos:
 
-1.  Vá para o dashboard
+1.  Interaja com o dashboard digitando e movimentando o mouse.
     
-2.  Digite no campo de texto
+2.  Abra o aplicativo **MongoDB Compass** e conecte-se utilizando a sua string de conexão do **MongoDB Atlas**.
     
-3.  Mova o mouse pela tela
+3.  Acesse o banco de dados `cybell_db`.
     
-4.  Clique em diferentes áreas
-    
-
-O sistema captura:
-
--   teclas pressionadas
-    
--   tempo de pressionamento
-    
--   tempo entre teclas
-    
--   movimentos do mouse
-    
--   cliques do mouse
-    
--   coordenadas X/Y
-    
--   timestamps
+4.  Verifique as coleções **`keystrokes`** e **`mouse_events`**. Os dados estarão particionados e salvos de forma segura por usuário.
     
 
-# 7. Visualizar dados no console
+## 7. Testar a rota de verificação da IA
 
-Abra o console do navegador:
-
--   Chrome/Edge:
-    
-    -   F12
-        
-    -   Aba "Console"
-        
-
-Execute:
+A API possui uma rota de simulação (`/api/verify`) integrada com documentação Swagger (`/apidocs`). Para testá-la via terminal (PowerShell), execute:
 
 ```
-exportBehaviorData()
-```
-
-Isso exibirá todos os dados coletados.
-
-# 8. Baixar JSON com os dados
-
-No console do navegador execute:
-
-```
-downloadBehaviorData()
-
-```
-O sistema fará download automático de um arquivo JSON contendo os eventos capturados.
-
-# 9. Testar envio automático para o MongoDB (Banco de Dados NoSQL)
-
-O sistema foi atualizado para enviar os dados comportamentais capturados diretamente para a API a cada 10 segundos.
-
-1.  No navegador, com o painel "Console" (F12) aberto, continue interagindo com a tela.
-    
-2.  A cada 10 segundos, você deverá ver a confirmação: `Status do MongoDB: Dados biométricos salvos no MongoDB`.
-    
-3.  Para validar fisicamente, abra o aplicativo **MongoDB Compass** e conecte-se à URI padrão (`mongodb://localhost:27017/`).
-    
-4.  Acesse o banco de dados `cybell_db`.
-    
-5.  Verifique as coleções `keystrokes` e `mouse_events`. Os dados gerados pelos seus testes estarão registrados nestas coleções em formato JSON.
-    
-
-# 10. Testar a rota de verificação da IA
-
-Foi disponibilizada uma rota de simulação (`/api/verify`) que retornará o status futuro da Inteligência Artificial. Para testá-la, abra um terminal (como o PowerShell) e execute:
-
-```
-Invoke-RestMethod -Uri http://127.0.0.1:5000/api/verify -Method Post -Body '{}' -ContentType 'application/json'
+Invoke-RestMethod -Uri [http://127.0.0.1:5000/api/verify](http://127.0.0.1:5000/api/verify) -Method Post -Body '{}' -ContentType 'application/json'
 ```
