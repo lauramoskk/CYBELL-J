@@ -5,3 +5,5 @@ flask-login
 flasgger
 pymongo
 python-dotenv
+flask-limiter
+flask-wtf

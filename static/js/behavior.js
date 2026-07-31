@@ -4,9 +4,20 @@ let shortcutsData = [];
 let ctrlPressTime = null;
 let idleCycles = 0;
 
+const csrfTokenMeta = document.querySelector('meta[name="csrf-token"]');
+const csrfToken = csrfTokenMeta ? csrfTokenMeta.getAttribute('content') : '';
+
 // Captura de Teclado e Atalhos (Ctrl+C, Ctrl+V, etc.)
 document.addEventListener('keydown', (event) => {
     if (!event.isTrusted) return; // Anti-bot básico por evento nativo
+
+    // Nunca capturar teclas digitadas em campos sensíveis (ex: senha)
+    const target = event.target;
+    if (target) {
+        const isPasswordField = target.tagName === 'INPUT' && target.type === 'password';
+        const isIgnored = target.hasAttribute && target.hasAttribute('data-behavior-ignore');
+        if (isPasswordField || isIgnored) return;
+    }
 
     const timestamp = Date.now();
 
@@ -70,7 +81,7 @@ function sendDataToBackend() {
 
     fetch('/api/behavior', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
         body: JSON.stringify(payload)
     })
     .then(response => response.json())
@@ -93,13 +104,34 @@ function sendDataToBackend() {
 }
 
 function verifyReauth() {
-    const pass = document.getElementById('reauthPassword').value;
-    if (pass.length > 0) {
-        const modal = document.getElementById('degradedTrustModal');
-        if (modal) modal.style.display = 'none';
-        document.getElementById('reauthPassword').value = '';
-        idleCycles = 0;
+    const passField = document.getElementById('reauthPassword');
+    const pass = passField.value;
+
+    if (!pass) {
+        return;
     }
+
+    fetch('/api/reauth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+        body: JSON.stringify({ password: pass })
+    })
+    .then(response => response.json().then(data => ({ ok: response.ok, data })))
+    .then(({ ok, data }) => {
+        passField.value = '';
+
+        if (ok && data.status === 'success') {
+            const modal = document.getElementById('degradedTrustModal');
+            if (modal) modal.style.display = 'none';
+            idleCycles = 0;
+        } else {
+            alert(data.message || 'Senha incorreta.');
+        }
+    })
+    .catch(error => {
+        console.error('Erro ao reautenticar:', error);
+        alert('Erro ao verificar senha. Tente novamente.');
+    });
 }
 
 setInterval(sendDataToBackend, 10000);

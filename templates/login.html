@@ -36,6 +36,7 @@
             <div class="login-card">
                 <h1>BEM-VINDO</h1>
                 <form id="loginForm" method="POST">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <!-- USUÁRIO -->
                     <div class="input-box">
                         <label>Usuário</label>
