@@ -1,4 +1,5 @@
 import re
+import os
 
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify  
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
@@ -11,19 +12,42 @@ from api import api_bp
 
 from flasgger import Swagger
 
+from flask_wtf import CSRFProtect
+
+from dotenv import load_dotenv
+
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
+
 import time
+
+load_dotenv()
 
 app = Flask(__name__, static_folder="static", template_folder="templates")
 
 # Ativa documentação Swagger da API
-Swagger(app)
+ENABLE_SWAGGER = os.getenv("ENABLE_SWAGGER", "false").lower() == "true"
+
+if ENABLE_SWAGGER:
+    Swagger(app)
 
 # Configurações principais da aplicação
-app.config["SECRET_KEY"] = "cybell_secret"
+app.config["SECRET_KEY"] = os.getenv("SECRET_KEY")
+
+if not app.config["SECRET_KEY"]:
+    raise ValueError("A variável de ambiente SECRET_KEY não foi encontrada. Verifique o arquivo .env")
 
 app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///database.db"
 
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+
+limiter = Limiter(get_remote_address, app=app, default_limits=[])
+
+app.config["SESSION_COOKIE_HTTPONLY"] = True
+app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+app.config["SESSION_COOKIE_SECURE"] = False  # mude para True quando tiver HTTPS em produção
+
+csrf = CSRFProtect(app)
 
 # Inicializa a conexão com o banco de dados
 db.init_app(app)
@@ -68,6 +92,7 @@ def home():
 
 # Página responsável pelo login e autenticação do usuário
 @app.route("/login", methods=["GET", "POST"])
+@limiter.limit("10 per minute")
 def login():
     if request.method == "POST":
         username = request.form.get("username", "").strip()
@@ -80,7 +105,7 @@ def login():
         user = User.query.filter_by(username=username).first()
 
         if not user:
-            flash("Usuário não encontrado.", "error")
+            flash("Usuário ou senha inválidos.", "error")
             return redirect(url_for("login"))
 
         # VERIFICAÇÃO DE SEGURANÇA: Bloqueio por Força Bruta no Servidor
@@ -101,7 +126,7 @@ def login():
                 flash("Muitas tentativas falhas. Conta bloqueada por 30 segundos.", "error")
             else:
                 db.session.commit()
-                flash(f"Senha incorreta. Tentativa {user.failed_login_attempts}/5.", "error")
+                flash("Usuário ou senha inválidos.", "error")
                 
             return redirect(url_for("login"))
 
@@ -117,6 +142,7 @@ def login():
 
 # Página responsável pelo cadastro de novos usuários
 @app.route("/register", methods=["GET", "POST"])
+@limiter.limit("10 per minute")
 def register():
     """
     Cadastro de usuário

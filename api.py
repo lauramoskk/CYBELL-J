@@ -1,5 +1,6 @@
 from flask import Blueprint, request, jsonify
 from flask_login import login_required, current_user
+from werkzeug.security import check_password_hash
 from mongo import keystrokes_collection, mouse_events_collection
 import time
 
@@ -100,6 +101,38 @@ def receive_behavior_data():
         "status": "success", 
         "message": "Dados biométricos validados e salvos no MongoDB"
     }), 200
+
+@api_bp.route("/api/reauth", methods=["POST"])
+@login_required
+def reauth():
+    """
+    Reautenticação do usuário durante a sessão (confiança degradada)
+    ---
+    tags:
+      - Autenticação
+    parameters:
+      - name: password
+        in: formData
+        type: string
+        required: true
+    responses:
+      200:
+        description: Senha correta, sessão restaurada
+      400:
+        description: Senha não enviada
+      401:
+        description: Senha incorreta
+    """
+    data = request.get_json(silent=True) or {}
+    password = data.get("password", "")
+
+    if not password:
+        return jsonify({"status": "error", "message": "Senha não informada."}), 400
+
+    if not check_password_hash(current_user.password, password):
+        return jsonify({"status": "invalid", "message": "Senha incorreta."}), 401
+
+    return jsonify({"status": "success", "message": "Reautenticação confirmada."}), 200
 
 @api_bp.route("/api/verify", methods=["POST"])
 @login_required
