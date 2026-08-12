@@ -35,7 +35,7 @@ document.addEventListener('keydown', (event) => {
         });
     } else if (event.key !== 'Control') {
         keyboardData.push({
-            key: event.key,
+            key: event.code,
             event_type: 'keydown',
             timestamp: timestamp
         });
@@ -49,11 +49,34 @@ document.addEventListener('keyup', (event) => {
     }
 });
 
+// Variável para guardar o contexto atual do dispositivo
+let currentDeviceType = 'mouse'; 
+
+// Captura a rolagem para identificar trackpad vs mouse
+document.addEventListener('wheel', (event) => {
+    if (!event.isTrusted) return;
+    if (Math.abs(event.deltaY) < 50 || event.deltaX !== 0 || !Number.isInteger(event.deltaY)) {
+        currentDeviceType = 'trackpad';
+    } else {
+        currentDeviceType = 'mouse';
+    }
+    mouseData.push({
+        event_type: 'mouse_wheel',
+        device_type: currentDeviceType,
+        delta_x: event.deltaX,
+        delta_y: event.deltaY,
+        x: event.clientX,
+        y: event.clientY,
+        timestamp: Date.now()
+    });
+});
+
 // Captura de Mouse (Movimento e Cliques)
 document.addEventListener('mousemove', (event) => {
     if (!event.isTrusted) return;
     mouseData.push({
         event_type: 'mouse_move',
+        device_type: currentDeviceType,
         x: event.clientX,
         y: event.clientY,
         timestamp: Date.now()
@@ -64,6 +87,7 @@ document.addEventListener('click', (event) => {
     if (!event.isTrusted) return;
     mouseData.push({
         event_type: 'mouse_click',
+        device_type: currentDeviceType,
         button: event.button,
         x: event.clientX,
         y: event.clientY,
@@ -76,6 +100,7 @@ document.addEventListener('mousedown', (event) => {
     if (!event.isTrusted) return;
     mouseData.push({
         event_type: 'mouse_down',
+        device_type: currentDeviceType,
         button: event.button,
         x: event.clientX,
         y: event.clientY,
@@ -87,6 +112,7 @@ document.addEventListener('mouseup', (event) => {
     if (!event.isTrusted) return;
     mouseData.push({
         event_type: 'mouse_up',
+        device_type: currentDeviceType,
         button: event.button,
         x: event.clientX,
         y: event.clientY,
