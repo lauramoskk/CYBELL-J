@@ -66,19 +66,9 @@ function showFlashMessage(container, text, type = "success") {
     }, 3000);
 }
 
-// Botão "Salvar Registro" do dashboard
+//Botão "Abrir Chamado" do dashboard 
 const saveRecordBtn = document.getElementById("saveRecordBtn");
 const dashboardFlashContainer = document.getElementById("dashboardFlashContainer");
-
-if (saveRecordBtn) {
-    saveRecordBtn.addEventListener("click", () => {
-        showFlashMessage(
-            dashboardFlashContainer,
-            "Registro salvo com sucesso! (Esse salvamento é ilustrativo — todos os dados biométricos são enviados automaticamente)",
-            "success"
-        );
-    });
-}
 
 // Proteção contra Brute Force no Client-Side (Login)
 const loginForm = document.getElementById("loginForm");

@@ -7,3 +7,5 @@ pymongo
 python-dotenv
 flask-limiter
 flask-wtf
+gunicorn
+psycopg2-binary

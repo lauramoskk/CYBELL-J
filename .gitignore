@@ -6,3 +6,6 @@ venv/
 env
 env/
 .env
+data/
+database.db
+*.pyc

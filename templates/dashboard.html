@@ -28,47 +28,134 @@
 
     <!-- MAIN -->
     <main class="dashboard-container">
-        <div class="dashboard-card">
+      <div class="dashboard-wrapper">
+
+        <div class="dashboard-card grid-area-atendimento">
             <h1>Bem-vindo, {{ username }}</h1>
-            
-            <!-- SIMULADOR CORPORATIVO MANTENDO O DESIGN ORIGINAL -->
-            <p class="dashboard-description">Módulo de Trabalho: Preencha os dados abaixo para simular atividade e gerar biometria de teclado e mouse para a IA.</p>
-    
+            <p class="dashboard-description">Central de Atendimento: abra, organize e resolva chamados de suporte por aqui.</p>
+
+            <!-- ABERTURA DE CHAMADO -->
             <div class="behavior-test-box">
                 <label>Nome do Cliente:</label>
-                <!-- Usei a classe behavior-input original, mas com altura menor para inputs simples -->
-                <input type="text" class="behavior-input" style="min-height: 45px; padding: 10px 20px;" placeholder="Ex: João da Silva">
-                
-                <label style="margin-top: 10px;">E-mail Corporativo:</label>
-                <input type="email" class="behavior-input" style="min-height: 45px; padding: 10px 20px;" placeholder="joao@empresa.com">
+                <input type="text" id="clientNameInput" class="behavior-input" style="min-height: 36px; padding: 7px 14px;" placeholder="Ex: João da Silva">
 
-                <label style="margin-top: 10px;">Observações do Atendimento (Use Ctrl+C e Ctrl+V aqui):</label>
-                <!-- Textarea mantendo o padrão exato da Laura -->
-                <textarea class="behavior-input" placeholder="Cole aqui o descritivo do chamado..."></textarea>
-                
-                <!-- Reutilizando a classe do botão da navbar para manter a coesão do design -->
-                <button id="saveRecordBtn" class="nav-login-btn" style="margin-top: 20px; width: 100%; height: 50px; font-size: 16px;">
-                    <i class="fa-solid fa-save"></i> Salvar Registro
+                <label style="margin-top: 6px;">Telefone:</label>
+                <input type="text" id="phoneInput" class="behavior-input" style="min-height: 36px; padding: 7px 14px;" placeholder="(00) 00000-0000" inputmode="numeric">
+
+                <label style="margin-top: 6px;">Email Corporativo:</label>
+                <input type="email" id="emailInput" class="behavior-input" style="min-height: 36px; padding: 7px 14px;" placeholder="joao@empresa.com">
+
+                <!-- Campo-armadilha (honeypot) -->
+                <div class="hp-field" aria-hidden="true">
+                    <label for="hp_confirm_email">Confirme seu e-mail</label>
+                    <input type="text" id="hp_confirm_email" name="confirm_email" tabindex="-1" autocomplete="off" data-behavior-honeypot>
+                </div>
+
+                <label style="margin-top: 6px;">Resumo do Chamado:</label>
+                <input type="text" id="ticketSummaryInput" class="behavior-input" style="min-height: 36px; padding: 7px 14px;" placeholder="Ex: Impressora não conecta na rede" maxlength="42">
+
+                <label style="margin-top: 6px;">Descrição do Chamado:</label>
+                <textarea id="ticketDescriptionInput" class="behavior-input" placeholder="Descreva o problema relatado pelo cliente..."></textarea>
+
+                <label style="margin-top: 6px;">Prioridade do Chamado:</label>
+                <div class="slider-box">
+                    <input type="range" id="priorityRange" min="1" max="10" value="5" class="priority-slider">
+                    <span id="priorityValue" class="slider-value">5</span>
+                </div>
+
+                <button id="saveRecordBtn" class="nav-login-btn" style="margin-top: 12px; width: 100%; height: 38px; font-size: 13px;">
+                    <i class="fa-solid fa-save"></i> Abrir Chamado
                 </button>
 
-                <!-- Aqui o aviso de "registro salvo" é inserido dinamicamente, reutilizando .flash-message do resto do site -->
+                <p id="ticketLimitWarning" class="ticket-limit-warning" style="display: none;">
+                    <i class="fa-solid fa-triangle-exclamation"></i> Você atingiu o limite de chamados que pode abrir. Encerre um dos que você criou para abrir outro.
+                </p>
+
                 <div id="dashboardFlashContainer"></div>
             </div>
         </div>
+
+        <!-- QUADRO DE CHAMADOS (KANBAN) -->
+        <div class="dashboard-card grid-area-kanban">
+            <h1 style="font-size: 19px;">Quadro de Chamados</h1>
+            <p class="dashboard-description">Arraste os cartões entre as colunas para atualizar o status do atendimento.</p>
+
+            <div class="kanban-board" id="kanbanBoard">
+                <div class="kanban-column" data-column="aberto">
+                    <h3>Aberto</h3>
+                    <div class="kanban-dropzone">
+                        <div class="kanban-card" data-id="1001">
+                            <strong>#1001</strong> — <span class="kanban-card-subject">Impressora não conecta na rede</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="kanban-column" data-column="andamento">
+                    <h3>Em Andamento</h3>
+                    <div class="kanban-dropzone">
+                        <div class="kanban-card" data-id="1002">
+                            <strong>#1002</strong> — <span class="kanban-card-subject">Lentidão no sistema de vendas</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="kanban-column" data-column="resolvido">
+                    <h3>Resolvido</h3>
+                    <div class="kanban-dropzone">
+                        <div class="kanban-card" data-id="1003">
+                            <strong>#1003</strong> — <span class="kanban-card-subject">Redefinição de senha corporativa</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ENCERRAMENTO DO ATENDIMENTO -->
+        <div class="dashboard-card grid-area-encerrar">
+            <h1 style="font-size: 19px;">Encerrar Atendimento</h1>
+            <p class="dashboard-description">Avalie o atendimento e colete a confirmação do cliente para fechar o chamado.</p>
+
+            <label style="font-size: 13px; font-weight: bold; color: var(--text-color); display: block;">Chamado a Encerrar:</label>
+            <select id="closeTicketSelect" class="behavior-input" style="min-height: 36px; padding: 7px 14px; margin-top: 6px;"></select>
+
+            <label style="font-size: 13px; font-weight: bold; color: var(--text-color); margin-top: 8px; display: block;">Satisfação do Cliente:</label>
+            <div class="star-rating" id="starRating">
+                <i class="fa-regular fa-star" data-value="1"></i>
+                <i class="fa-regular fa-star" data-value="2"></i>
+                <i class="fa-regular fa-star" data-value="3"></i>
+                <i class="fa-regular fa-star" data-value="4"></i>
+                <i class="fa-regular fa-star" data-value="5"></i>
+            </div>
+
+            <label style="font-size: 13px; font-weight: bold; color: var(--text-color); margin-top: 8px; display: block;">Assinatura de Confirmação:</label>
+            <div class="signature-box">
+                <canvas id="signatureCanvas" width="620" height="85"></canvas>
+                <button id="clearSignatureBtn" type="button" class="signature-clear-btn">
+                    <i class="fa-solid fa-eraser"></i> Limpar
+                </button>
+            </div>
+
+            <button id="closeTicketBtn" class="nav-login-btn hold-to-confirm" style="margin-top: 12px; width: 100%; height: 38px; font-size: 13px;">
+                <span class="hold-fill"></span>
+                <span class="hold-label"><i class="fa-solid fa-lock"></i> Segure para confirmar encerramento</span>
+            </button>
+
+            <div id="closeFlashContainer"></div>
+        </div>
+
+      </div>
     </main>
 
-    <!-- MODAL DE REAUTENTICAÇÃO (Oculto por padrão, mas usando as cores do seu CSS) -->
+    <!-- MODAL DE REAUTENTICAÇÃO -->
     <div id="degradedTrustModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(30, 41, 59, 0.85); z-index: 9999; align-items: center; justify-content: center;">
         <div style="background: var(--card-background); padding: 40px; border-radius: 25px; text-align: center; width: 450px; box-shadow: 0 10px 40px rgba(0,0,0,0.2);">
             <i class="fa-solid fa-shield-halved" style="font-size: 45px; color: var(--primary-color); margin-bottom: 20px;"></i>
             <h2 style="color: var(--text-color); margin-bottom: 15px; font-size: 24px;">Sessão Inativa ou Suspeita</h2>
             <p style="color: var(--secondary-text); margin-bottom: 25px; font-size: 15px;">Não detectamos interações suficientes. Por favor, confirme sua identidade corporativa para continuar.</p>
-            
+
             <div class="input-wrapper" style="background: white; border-radius: 10px; padding: 5px 15px; margin-bottom: 25px;">
                 <i class="fa-solid fa-lock"></i>
                 <input type="password" id="reauthPassword" placeholder="Digite sua senha" style="width: 100%; padding: 12px; border: none; outline: none; background: transparent;">
             </div>
-            
+
             <button class="nav-login-btn" onclick="verifyReauth()" style="width: 100%; height: 50px; font-size: 16px;">
                 <i class="fa-solid fa-unlock"></i> Desbloquear Sessão
             </button>
@@ -77,5 +164,6 @@
 
     <script src="/static/js/script.js"></script>
     <script src="/static/js/behavior.js"></script>
+    <script src="/static/js/widgets.js"></script>
 </body>
 </html>

@@ -71,6 +71,29 @@ document.addEventListener('click', (event) => {
     });
 });
 
+// Captura de pressionar/soltar o botão do mouse (hold time, início/fim de arraste)
+document.addEventListener('mousedown', (event) => {
+    if (!event.isTrusted) return;
+    mouseData.push({
+        event_type: 'mouse_down',
+        button: event.button,
+        x: event.clientX,
+        y: event.clientY,
+        timestamp: Date.now()
+    });
+});
+
+document.addEventListener('mouseup', (event) => {
+    if (!event.isTrusted) return;
+    mouseData.push({
+        event_type: 'mouse_up',
+        button: event.button,
+        x: event.clientX,
+        y: event.clientY,
+        timestamp: Date.now()
+    });
+});
+
 // Envio periódico para a API (A cada 10 segundos)
 function sendDataToBackend() {
     const payload = {

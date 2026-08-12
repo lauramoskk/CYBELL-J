@@ -8,7 +8,19 @@ Para o funcionamento da captura contínua e persistência de dados em nuvem, est
 2. Adicione sua URI do MongoDB Atlas no arquivo `.env`:
    ```env
    MONGO_URI=sua_uri_do_mongodb_atlas_aqui
-
+   SECRET_KEY=uma_chave_aleatoria_grande_aqui
+   ENABLE_SWAGGER=true
+   ```
+   
+   Para gerar uma `SECRET_KEY` segura, rode no terminal:
+   ```
+   python -c "import secrets; print(secrets.token_hex(32))"
+   ```
+   
+**Importante:** sem a `SECRET_KEY` definida, a aplicação não inicia (ela valida isso na subida).
+      
+`ENABLE_SWAGGER=true` habilita a documentação em `/apidocs`.
+   
 _(Nota: O arquivo `.env` já está listado no `.gitignore` para proteger suas credenciais de segurança)._
 
 ## 1. Instalar as dependências
@@ -99,3 +111,7 @@ A API possui uma rota de simulação (`/api/verify`) integrada com documentaçã
 ```
 Invoke-RestMethod -Uri [http://127.0.0.1:5000/api/verify](http://127.0.0.1:5000/api/verify) -Method Post -Body '{}' -ContentType 'application/json'
 ```
+
+## Proteção contra CSRF
+ 
+Todos os formulários (login e cadastro) e as chamadas via `fetch` (`/api/behavior` e `/api/reauth`) agora exigem um token CSRF válido, gerado pelo Flask-WTF. Isso é transparente para quem usa a interface normalmente, o token é injetado automaticamente nas páginas. Se você modificar os templates ou o `behavior.js`, garanta que o token continue sendo enviado, senão as requisições passam a falhar com erro 400.
