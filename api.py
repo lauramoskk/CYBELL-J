@@ -69,8 +69,11 @@ def receive_behavior_data():
             sanitized_mouse.append({
                 "user": current_user_id,
                 "event_type": str(m.get("event_type", "")),
+                "device_type": str(m.get("device_type", "mouse")),
                 "x": x_val,
                 "y": y_val,
+                "delta_x": m.get("delta_x", 0),
+                "delta_y": m.get("delta_y", 0),
                 "timestamp": int(m.get("timestamp", time.time()))
             })
 
