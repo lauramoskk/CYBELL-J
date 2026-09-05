@@ -1,0 +1,18 @@
+{
+  "alpha": 0.05,
+  "window_size": 50,
+  "overlap_pct": 75,
+  "fonte": "data\\mouse_events_metrics.csv",
+  "fallback_metricas_brutas": true,
+  "filtro_window_overlap_aplicado": false,
+  "unidade_observacao": "usuario + sessao",
+  "mouse_sessoes": 180,
+  "trackpad_sessoes": 35,
+  "pares_mouse_trackpad": 8,
+  "testes_hipotese": [
+    "t pareado",
+    "Wilcoxon pareado",
+    "Benjamini-Hochberg"
+  ],
+  "interpretacao": "p_valor >= alpha nao rejeita normalidade; nao prova que a distribuicao seja normal."
+}
