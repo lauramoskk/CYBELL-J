@@ -9,3 +9,8 @@ flask-limiter
 flask-wtf
 gunicorn
 psycopg2-binary
+numpy
+pandas
+scikit-learn
+xgboost
+joblib

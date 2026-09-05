@@ -1,0 +1,21 @@
+{
+  "metrics": {
+    "accuracy": 0.9508224739003069,
+    "balanced_accuracy": 0.9635400187426918,
+    "macro_f1": 0.9390484931774316,
+    "precision": 0.9293392408538201,
+    "recall": 0.9635400187426918,
+    "auc": 0.9759053080023764
+  },
+  "eer": 0.0548654865002768,
+  "threshold": 0.7601616978645325,
+  "best_params": {
+    "model__colsample_bytree": 0.85,
+    "model__learning_rate": 0.05,
+    "model__max_depth": 4,
+    "model__min_child_weight": 1,
+    "model__n_estimators": 250,
+    "model__subsample": 0.85
+  },
+  "excluded_unknown_user": "yass"
+}
