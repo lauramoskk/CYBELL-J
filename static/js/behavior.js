@@ -183,4 +183,44 @@ function verifyReauth() {
     });
 }
 
+
+document.getElementById('verifyIdentityBtn')?.addEventListener('click', async () => {
+    const resultado = document.getElementById('identityVerificationResult');
+    const botao = document.getElementById('verifyIdentityBtn');
+
+    botao.disabled = true;
+    botao.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Verificando...';
+    resultado.textContent = 'Analisando seu comportamento...';
+
+    try {
+        const response = await fetch('/api/verify', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            },
+            body: JSON.stringify({})
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            const ehLegitimo = data.resultado === 'legitimo';
+
+            resultado.innerHTML = ehLegitimo
+                ? '<strong>? Identidade confirmada</strong><br>Score: ' + (data.score * 100).toFixed(2) + '%'
+                : '<strong>? Comportamento suspeito</strong><br>Score: ' + (data.score * 100).toFixed(2) + '%';
+        } else {
+            resultado.textContent = data.message || 'Não foi possível realizar a verificação.';
+        }
+    } catch (error) {
+        console.error('Erro ao verificar identidade:', error);
+        resultado.textContent = 'Erro ao realizar a verificação.';
+    } finally {
+        botao.disabled = false;
+        botao.innerHTML = '<i class="fa-solid fa-shield-halved"></i> Verificar minha identidade';
+    }
+});
+
 setInterval(sendDataToBackend, 10000);
+
