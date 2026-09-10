@@ -2,16 +2,20 @@ from flask import Blueprint, request, jsonify
 from flask_login import login_required, current_user
 from werkzeug.security import check_password_hash
 from mongo import keystrokes_collection, mouse_events_collection
+from scripts_ml.inference.mouse_inference import prever_mouse
 import time
+
 
 # Cria o Blueprint para as rotas de API
 api_bp = Blueprint("api", __name__)
+
 
 @api_bp.route("/api/behavior", methods=["POST"])
 @login_required
 def receive_behavior_data():
     """
-    Recebe dados comportamentais (teclado e mouse) do Front-end com validação de segurança
+    Recebe dados comportamentais (teclado e mouse) do Front-end
+    com validação de segurança
     ---
     tags:
       - Coleta de Dados
@@ -23,10 +27,13 @@ def receive_behavior_data():
       429:
         description: Excesso de volume de eventos (Proteção Anti-Flood)
     """
+
     data = request.get_json()
 
     if not data:
-        return jsonify({"error": "Nenhum dado recebido"}), 400
+        return jsonify({
+            "error": "Nenhum dado recebido"
+        }), 400
 
     keyboard_data = data.get("keyboard", [])
     mouse_data = data.get("mouse", [])
@@ -35,21 +42,23 @@ def receive_behavior_data():
     # 1. Validação de Janela Vazia (Confiança Degradada)
     if not keyboard_data and not mouse_data and not shortcuts_data:
         return jsonify({
-            "status": "empty_window", 
+            "status": "empty_window",
             "message": "Nenhum dado biométrico recebido nesta janela."
         }), 200
 
-    # 2. Segurança: Proteção Anti-Flood / Anti-Bot (Limite de volume por lote)
+    # 2. Segurança: Proteção Anti-Flood / Anti-Bot
+    # Limite de volume por lote
     if len(mouse_data) > 400 or len(keyboard_data) > 200:
         return jsonify({
             "status": "security_violation",
             "message": "Volume excessivo de eventos detectado."
         }), 429
 
-    # 3. Sanitização e Vinculación Segura com o Usuário Logado
+    # 3. Sanitização e Vinculação Segura com o Usuário Logado
     current_user_id = current_user.username
 
     sanitized_keyboard = []
+
     for k in keyboard_data:
         sanitized_keyboard.append({
             "user": current_user_id,
@@ -59,12 +68,15 @@ def receive_behavior_data():
         })
 
     sanitized_mouse = []
+
     for m in mouse_data:
         x_val = float(m.get("x", 0.0))
         y_val = float(m.get("y", 0.0))
-        
-        # SEGURANÇA: Descarta coordenadas fora de uma tela convencional (ex: monitores de 4K até 3840x2160)
-        # Impedindo injeção de valores espaciais absurdos ou negativos inválidos
+
+        # SEGURANÇA:
+        # Descarta coordenadas fora de uma tela convencional
+        # (ex: monitores de 4K até 3840x2160)
+        # Impedindo valores espaciais absurdos ou negativos inválidos
         if 0 <= x_val <= 4000 and 0 <= y_val <= 3000:
             sanitized_mouse.append({
                 "user": current_user_id,
@@ -78,8 +90,10 @@ def receive_behavior_data():
             })
 
     sanitized_shortcuts = []
+
     for s in shortcuts_data:
         hold_time = float(s.get("hold_time", 0.0))
+
         if hold_time >= 0:
             sanitized_shortcuts.append({
                 "user": current_user_id,
@@ -93,17 +107,24 @@ def receive_behavior_data():
     try:
         if sanitized_keyboard:
             keystrokes_collection.insert_many(sanitized_keyboard)
+
         if sanitized_mouse:
             mouse_events_collection.insert_many(sanitized_mouse)
+
         if sanitized_shortcuts:
             keystrokes_collection.insert_many(sanitized_shortcuts)
+
     except Exception as e:
-        return jsonify({"error": "Erro ao persistir dados no banco NoSQL", "details": str(e)}), 500
+        return jsonify({
+            "error": "Erro ao persistir dados no banco NoSQL",
+            "details": str(e)
+        }), 500
 
     return jsonify({
-        "status": "success", 
+        "status": "success",
         "message": "Dados biométricos validados e salvos no MongoDB"
     }), 200
+
 
 @api_bp.route("/api/reauth", methods=["POST"])
 @login_required
@@ -126,37 +147,110 @@ def reauth():
       401:
         description: Senha incorreta
     """
+
     data = request.get_json(silent=True) or {}
     password = data.get("password", "")
 
     if not password:
-        return jsonify({"status": "error", "message": "Senha não informada."}), 400
+        return jsonify({
+            "status": "error",
+            "message": "Senha não informada."
+        }), 400
 
     if not check_password_hash(current_user.password, password):
-        return jsonify({"status": "invalid", "message": "Senha incorreta."}), 401
+        return jsonify({
+            "status": "invalid",
+            "message": "Senha incorreta."
+        }), 401
 
-    return jsonify({"status": "success", "message": "Reautenticação confirmada."}), 200
+    return jsonify({
+        "status": "success",
+        "message": "Reautenticação confirmada."
+    }), 200
+
 
 @api_bp.route("/api/verify", methods=["POST"])
 @login_required
 def verify_ia():
     """
-    Verificação da Inteligência Artificial (Esqueleto/Placeholder)
+    Verificação da Inteligência Artificial
     ---
     tags:
       - Inteligência Artificial
     responses:
       200:
-        description: Retorna o score de legitimidade calculado pela IA
+        description: Retorna o resultado da análise comportamental
+      400:
+        description: Dados insuficientes para análise
+      500:
+        description: Erro durante a análise
     """
-    fake_score = 0.92
-    limiar_seguranca = 0.80
 
-    status_sessao = "legitimo" if fake_score >= limiar_seguranca else "suspeito"
+    TAMANHO_JANELA = 50
 
-    return jsonify({
-        "status": "success",
-        "score": fake_score,
-        "resultado": status_sessao,
-        "mensagem": "Análise comportamental concluída"
-    }), 200
+    usuario_logado = current_user.username
+
+    try:
+        # Busca os eventos de mouse do usuário atualmente logado
+        eventos = list(
+            mouse_events_collection
+            .find({"user": usuario_logado})
+            .sort("timestamp", -1)
+            .limit(TAMANHO_JANELA)
+        )
+
+        # Verifica se há eventos suficientes
+        if len(eventos) < TAMANHO_JANELA:
+            return jsonify({
+                "status": "insufficient_data",
+                "score": 0.0,
+                "resultado": "indisponivel",
+                "mensagem": (
+                    f"Dados insuficientes para análise. "
+                    f"São necessários pelo menos {TAMANHO_JANELA} "
+                    f"eventos de mouse."
+                ),
+                "eventos_analisados": len(eventos)
+            }), 400
+
+        # Remove o identificador interno do MongoDB
+        for evento in eventos:
+            evento.pop("_id", None)
+
+        # Executa a inferência real do modelo
+        resultado_ia = prever_mouse(eventos)
+
+        usuario_previsto = resultado_ia["usuario_previsto"]
+        confianca = resultado_ia["confianca"]
+        threshold = resultado_ia["threshold"]
+
+        # O modelo considera conhecido somente quando
+        # a confiança ultrapassa o threshold configurado.
+        if resultado_ia["resultado"] == "conhecido":
+            status_sessao = "legitimo"
+        else:
+            status_sessao = "suspeito"
+
+        return jsonify({
+            "status": "success",
+            "score": confianca,
+            "resultado": status_sessao,
+            "usuario_previsto": usuario_previsto,
+            "threshold": threshold,
+            "probabilidades": resultado_ia["probabilidades"],
+            "eventos_analisados": len(eventos),
+            "mensagem": "Análise comportamental concluída"
+        }), 200
+
+    except ValueError as e:
+        return jsonify({
+            "status": "error",
+            "message": str(e)
+        }), 400
+
+    except Exception as e:
+        return jsonify({
+            "status": "error",
+            "message": "Erro durante a análise comportamental.",
+            "details": str(e)
+        }), 500
