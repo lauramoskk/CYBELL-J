@@ -1,0 +1,4 @@
+sobreposicao,complexidade_computacional,seguranca_percebida,ganho_vs_custo,observacao
+25,baixa,moderada,baixo,base produzida com overlap menor; não há comparação final automatizada
+50,média,boa,médio, cenário intermediário; sem tabela consolidada
+75,alta,alta,alto,configuração atualmente usada no pipeline principal

@@ -1,0 +1,81 @@
+{
+  "volumetria": [
+    {
+      "volumetria_eventos": 25,
+      "eer": null,
+      "f1_score_macro": null,
+      "observacao": "não executado no pipeline atual",
+      "modelo_referencia": "pipeline atual"
+    },
+    {
+      "volumetria_eventos": 30,
+      "eer": null,
+      "f1_score_macro": null,
+      "observacao": "não executado no pipeline atual",
+      "modelo_referencia": "pipeline atual"
+    },
+    {
+      "volumetria_eventos": 50,
+      "eer": null,
+      "f1_score_macro": null,
+      "observacao": "não executado no pipeline atual",
+      "modelo_referencia": "pipeline atual"
+    },
+    {
+      "volumetria_eventos": 100,
+      "eer": null,
+      "f1_score_macro": null,
+      "observacao": "não executado no pipeline atual",
+      "modelo_referencia": "pipeline atual"
+    }
+  ],
+  "sobreposicao": [
+    {
+      "sobreposicao": 25,
+      "complexidade_computacional": "baixa",
+      "seguranca_percebida": "moderada",
+      "ganho_vs_custo": "baixo",
+      "observacao": "base produzida com overlap menor; não há comparação final automatizada"
+    },
+    {
+      "sobreposicao": 50,
+      "complexidade_computacional": "média",
+      "seguranca_percebida": "boa",
+      "ganho_vs_custo": "médio",
+      "observacao": " cenário intermediário; sem tabela consolidada"
+    },
+    {
+      "sobreposicao": 75,
+      "complexidade_computacional": "alta",
+      "seguranca_percebida": "alta",
+      "ganho_vs_custo": "alto",
+      "observacao": "configuração atualmente usada no pipeline principal"
+    }
+  ],
+  "latencia": [
+    {
+      "latencia_segundos": 5,
+      "erro_estimado": null,
+      "f1_estimado": null,
+      "tradeoff": "não modelado no código atual"
+    },
+    {
+      "latencia_segundos": 10,
+      "erro_estimado": null,
+      "f1_estimado": null,
+      "tradeoff": "não modelado no código atual"
+    },
+    {
+      "latencia_segundos": 15,
+      "erro_estimado": null,
+      "f1_estimado": null,
+      "tradeoff": "não modelado no código atual"
+    },
+    {
+      "latencia_segundos": 20,
+      "erro_estimado": null,
+      "f1_estimado": null,
+      "tradeoff": "não modelado no código atual"
+    }
+  ]
+}

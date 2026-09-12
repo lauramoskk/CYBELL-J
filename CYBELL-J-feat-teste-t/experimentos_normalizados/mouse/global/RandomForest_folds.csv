@@ -1,0 +1,4 @@
+fold,inner_macro_f1,best_params,accuracy,balanced_accuracy,macro_f1,precision,recall,auc
+1,0.999668003903763,"{""model__max_depth"": null, ""model__max_features"": ""sqrt"", ""model__min_samples_leaf"": 1, ""model__n_estimators"": 300}",0.9989200863930886,0.998991935483871,0.9989147390392745,0.9988399071925754,0.998991935483871,1.0
+2,0.999653109417892,"{""model__max_depth"": null, ""model__max_features"": ""sqrt"", ""model__min_samples_leaf"": 1, ""model__n_estimators"": 300}",1.0,1.0,1.0,1.0,1.0,1.0
+3,0.9992765293409281,"{""model__max_depth"": null, ""model__max_features"": ""sqrt"", ""model__min_samples_leaf"": 1, ""model__n_estimators"": 300}",0.9996682149966821,0.9996598639455783,0.9996680094257124,0.9996763754045308,0.9996598639455783,1.0

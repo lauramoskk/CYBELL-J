@@ -1,0 +1,680 @@
+/* Reset básico para remover espaçamentos padrões e garantir um comportamento consistente */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+/* Variáveis globais utilizadas no sistema */
+:root {
+    --primary-color: #4f46e5;
+    --primary-light: #818cf8;
+    --text-color: #1e293b;
+    --secondary-text: #64748b;
+    --background-color: #f7f8fc;
+    --card-background: #dfe6f9;
+}
+
+/* BODY */
+/* Estrutura principal da página */
+body {
+    font-family: Arial, Helvetica, sans-serif;
+    background: var(--background-color);
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: var(--text-color);
+    padding-top: 100px;
+}
+
+/* Container principal que separa o formulário da imagem */
+.container {
+    width: 1200px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 120px;
+    padding: 40px;
+}
+
+/* NAVBAR */
+/* Navbar fixa no topo da página */
+.navbar {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    margin-top: 20px; /* Reduzi um pouco a margem para ficar mais equilibrado */
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 1000;
+    pointer-events: none; /* deixa a área vazia ao redor da pílula clicável para o conteúdo por trás */
+}
+
+.navbar .nav-container {
+    position: relative;
+    z-index: 1; /* garante que a pílula fique acima do fade abaixo */
+    pointer-events: auto; /* reativa cliques dentro da pílula */
+}
+
+/* Efeito "vidro fosco": em vez de cortar o conteúdo que rola por baixo da
+   navbar com uma linha reta, ele vai desaparecendo suavemente dentro de um
+   blur com fade (mesmo efeito usado em headers da Vercel, Linear, Apple, etc). */
+.navbar::before {
+    content: "";
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 140px; /* cobre a pílula + uma margem de transição */
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    background: linear-gradient(
+        to bottom,
+        rgba(247, 248, 252, 0.9) 0%,
+        rgba(247, 248, 252, 0.6) 55%,
+        rgba(247, 248, 252, 0) 100%
+    );
+    /* A máscara faz o blur/fundo em si também sumir gradualmente,
+       em vez de terminar numa borda reta visível */
+    -webkit-mask-image: linear-gradient(to bottom, black 0%, black 55%, transparent 100%);
+    mask-image: linear-gradient(to bottom, black 0%, black 55%, transparent 100%);
+    pointer-events: none;
+}
+
+/* Container interno da navbar */
+.nav-container {
+    width: 900px;
+    max-width: 95%;
+    height: 70px;
+    background: white;
+    border-radius: 50px;
+    padding: 0 28px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+    border: 1px solid rgba(0,0,0,0.04);
+}
+
+/* Nome/logo do sistema */
+.nav-logo {
+    font-size: 20px;
+    font-weight: bold;
+    color: var(--text-color);
+    padding: 0 10px;
+}
+
+/* Lista de links da navbar */
+.nav-links {
+    display: flex;
+    align-items: center;
+    gap: 38px;
+    list-style: none;
+}
+
+.nav-links li {
+    display: flex;
+    align-items: center;
+}
+
+/* Links padrão da navbar */
+.nav-links a {
+    text-decoration: none;
+    color: var(--secondary-text);
+    font-size: 15px;
+    font-weight: 500;
+    transition: color 0.3s;
+}
+
+.nav-links a:hover {
+    color: var(--primary-color);
+}
+
+/* Botão principal utilizado na navbar */
+.nav-login-btn {
+    height: 42px;
+    padding: 0 22px;
+    border: none;
+    border-radius: 30px;
+    background: linear-gradient(
+        90deg,
+        var(--primary-light),
+        var(--primary-color)
+    );
+    color: white;
+    font-size: 14px;
+    font-weight: bold;
+    cursor: pointer;
+    transition:
+        transform 0.3s,
+        box-shadow 0.3s;
+    width: auto;
+    margin-top: 0;
+}
+
+.nav-login-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 8px 18px rgba(79,70,229,0.25);
+}
+
+.nav-login-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+/* Espaçamento do ícone dentro do botão */
+.nav-login-btn i {
+    margin-right: 8px;
+}
+
+/* Área responsável pelo formulário */
+.login-section {
+    width: 420px;
+}
+
+/* Card principal de login/registro */
+.login-card {
+    background: var(--card-background);
+    padding: 60px 45px;
+    border-radius: 25px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.05);
+}
+
+/* Título principal do card */
+.login-card h1 {
+    text-align: center;
+    margin-bottom: 50px;
+    color: #1d4ed8;
+    font-size: 42px;
+    letter-spacing: 2px;
+}
+
+/* Texto de redirecionamento entre login/register */
+.login-redirect {
+    text-align: center;
+    margin-top: 22px;
+    font-size: 14px;
+    color: var(--secondary-text);
+}
+
+.login-redirect a {
+    color: var(--primary-color);
+    text-decoration: none;
+    font-weight: bold;
+    transition: opacity 0.3s;
+}
+
+.login-redirect a:hover {
+    opacity: 0.7;
+}
+
+/* Estrutura dos campos do formulário */
+.input-box {
+    margin-bottom: 28px;
+}
+
+/* Labels dos inputs */
+.input-box label {
+    display: block;
+    margin-bottom: 12px;
+    color: #1e3a8a;
+    font-weight: bold;
+    font-size: 18px;
+}
+
+/* Wrapper utilizado para alinhar ícones e inputs */
+.input-wrapper {
+    display: flex;
+    align-items: center;
+    border-bottom: 2px solid #1d4ed8;
+    padding-bottom: 10px;
+}
+
+/* Ícones dos inputs */
+.input-wrapper i {
+    color: var(--secondary-text);
+    font-size: 18px;
+    margin-right: 12px;
+}
+
+/* Campos de entrada */
+.input-wrapper input {
+    width: 100%;
+    border: none;
+    background: transparent;
+    outline: none;
+    font-size: 15px;
+    color: #334155;
+}
+
+/* Botão principal do formulário */
+.login-card button {
+    width: 100%;
+    height: 58px;
+    border: none;
+    border-radius: 10px;
+    background: linear-gradient(
+        90deg,
+        var(--primary-light),
+        var(--primary-color)
+    );
+    color: white;
+    font-size: 18px;
+    font-weight: bold;
+    cursor: pointer;
+    transition:
+        transform 0.3s,
+        box-shadow 0.3s;
+    letter-spacing: 1px;
+    margin-top: 54px;
+}
+
+.login-card button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 20px rgba(79,70,229,0.2);
+}
+
+/* Área responsável pela imagem lateral */
+.image-section {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+}
+
+/* Imagem principal */
+.image-section img {
+    width: 100%;
+    max-width: 650px;
+}
+
+/* Esconde o ícone nativo de "mostrar senha" do Microsoft Edge,
+   para não duplicar com o nosso ícone customizado do Font Awesome */
+input[type="password"]::-ms-reveal,
+input[type="password"]::-ms-clear {
+    display: none;
+}
+
+/* Ícone utilizado para mostrar/esconder senha */
+.toggle-password {
+    cursor: pointer;
+    color: var(--secondary-text);
+    transition: color 0.3s;
+}
+
+.toggle-password:hover {
+    color: var(--primary-color);
+}
+
+/* Mensagens de erro e sucesso */
+.flash-message {
+    width: 100%;
+    padding: 14px;
+    border-radius: 10px;
+    margin-top: 25px;
+    font-size: 14px;
+    text-align: center;
+    font-weight: 500;
+    transition: 0.3s;
+    opacity: 1;
+}
+
+/* Mensagem de erro */
+.flash-message.error {
+    background: #fee2e2;
+    color: #b91c1c;
+    border: 1px solid #fecaca;
+}
+
+/* Mensagem de sucesso */
+.flash-message.success {
+    background: #dcfce7;
+    color: #166534;
+    border: 1px solid #bbf7d0;
+}
+
+/* DASHBOARD */
+/* Container principal */
+.dashboard-container {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    padding: 24px;
+    padding-top: 40px;
+}
+
+/* Card principal */
+.dashboard-card {
+    width: 100%;
+    background: white;
+    border-radius: 20px;
+    padding: 22px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.05);
+}
+
+/* Título */
+.dashboard-card h1 {
+    font-size: 22px;
+    color: var(--text-color);
+    margin-bottom: 6px;
+}
+
+/* Texto */
+.dashboard-description {
+    color: var(--secondary-text);
+    margin-bottom: 14px;
+    line-height: 1.4;
+    font-size: 13px;
+}
+
+/* Área de teste */
+.behavior-test-box {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+/* Label */
+.behavior-test-box label {
+    font-size: 13px;
+    font-weight: bold;
+    color: var(--text-color);
+}
+
+/* Textarea */
+.behavior-input {
+    width: 100%;
+    min-height: 70px;
+    border: 2px solid #dbeafe;
+    border-radius: 12px;
+    padding: 10px 14px;
+    resize: none;
+    outline: none;
+    font-size: 13px;
+    transition:
+        border 0.3s,
+        box-shadow 0.3s;
+}
+
+/* Campo-armadilha (honeypot) */
+.hp-field {
+    position: absolute;
+    left: -9999px;
+    top: -9999px;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+}
+
+/* Focus */
+.behavior-input:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 5px rgba(79,70,229,0.08);
+}
+
+/* WIDGETS DO DASHBOARD */
+.dashboard-wrapper {
+    width: 1300px;
+    max-width: 100%;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-areas:
+        "atendimento kanban"
+        "atendimento encerrar";
+    gap: 16px;
+    align-items: start;
+}
+
+.grid-area-atendimento {
+    grid-area: atendimento;
+    align-self: stretch;
+}
+.grid-area-kanban { grid-area: kanban; }
+.grid-area-encerrar { grid-area: encerrar; }
+
+/* Aviso de limite de chamados abertos */
+.ticket-limit-warning {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 10px;
+    padding: 10px 14px;
+    background: #fef3c7;
+    color: #92400e;
+    border-radius: 10px;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+/* Slider de prioridade */
+.slider-box {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.priority-slider {
+    flex: 1;
+    accent-color: var(--primary-color);
+    height: 5px;
+    cursor: pointer;
+}
+
+.slider-value {
+    min-width: 26px;
+    height: 26px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--primary-color);
+    color: white;
+    border-radius: 50%;
+    font-weight: bold;
+    font-size: 12px;
+}
+
+/* Avaliação por estrelas */
+.star-rating {
+    display: flex;
+    gap: 5px;
+    font-size: 18px;
+    color: #fbbf24;
+    margin-top: 6px;
+    width: fit-content;
+    cursor: pointer;
+}
+
+.star-rating i {
+    transition: transform 0.15s;
+}
+
+.star-rating i:hover {
+    transform: scale(1.15);
+}
+
+/* Quadro Kanban */
+.kanban-board {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+}
+
+.kanban-column {
+    flex: 1;
+    background: var(--background-color);
+    border-radius: 12px;
+    padding: 10px;
+    min-width: 0;
+}
+
+.kanban-column h3 {
+    font-size: 11px;
+    color: var(--secondary-text);
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.kanban-dropzone {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-height: 40px;
+}
+
+.kanban-card {
+    background: white;
+    border-radius: 9px;
+    padding: 8px 10px;
+    font-size: 11.5px;
+    color: var(--text-color);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    cursor: grab;
+    user-select: none;
+    line-height: 1.4;
+}
+
+.kanban-card strong {
+    color: var(--primary-color);
+}
+
+.kanban-card.dragging {
+    cursor: grabbing;
+    box-shadow: 0 12px 30px rgba(0,0,0,0.18);
+    transform: rotate(-1.5deg);
+    opacity: 0.95;
+}
+
+/* Assinatura em canvas */
+.signature-box {
+    margin-top: 6px;
+    border: 2px dashed #dbeafe;
+    border-radius: 12px;
+    padding: 6px;
+    position: relative;
+}
+
+.signature-box canvas {
+    width: 100%;
+    height: 85px;
+    background: white;
+    border-radius: 8px;
+    cursor: crosshair;
+    touch-action: none;
+}
+
+.signature-clear-btn {
+    position: absolute;
+    bottom: 12px;
+    right: 12px;
+    background: white;
+    border: 1px solid #dbeafe;
+    border-radius: 20px;
+    padding: 4px 10px;
+    font-size: 10.5px;
+    color: var(--secondary-text);
+    cursor: pointer;
+}
+
+.signature-clear-btn:hover {
+    color: var(--primary-color);
+}
+
+/* Botão "segure para confirmar" */
+.hold-to-confirm {
+    position: relative;
+    overflow: hidden;
+}
+
+.hold-fill {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    width: 0%;
+    background: rgba(255,255,255,0.25);
+    transition: width 0s;
+}
+
+.hold-to-confirm.holding .hold-fill {
+    width: 100%;
+    transition: width 1.2s linear;
+}
+
+.hold-to-confirm.confirmed {
+    background: linear-gradient(90deg, #22c55e, #16a34a);
+}
+
+.hold-to-confirm:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.hold-label {
+    position: relative;
+    z-index: 1;
+}
+
+/* Ajustes para telas menores */
+@media (max-width: 1000px) {
+    body {
+        padding: 40px 20px;
+    }
+
+    .container {
+        flex-direction: column;
+        width: 100%;
+        gap: 50px;
+    }
+
+    .login-section {
+        width: 100%;
+        max-width: 450px;
+    }
+
+    .image-section img {
+        max-width: 400px;
+    }
+
+    .nav-container {
+        width: 95%;
+        padding: 0 20px;
+    }
+
+    .nav-links {
+        gap: 20px;
+    }
+
+    .dashboard-container {
+        padding: 20px;
+    }
+
+    .dashboard-card {
+        width: 100%;
+        padding: 30px;
+    }
+
+    .dashboard-wrapper {
+        width: 100%;
+        grid-template-columns: 1fr;
+        grid-template-areas:
+            "atendimento"
+            "kanban"
+            "encerrar";
+    }
+
+    .kanban-board {
+        flex-direction: column;
+    }
+
+    .dashboard-card h1 {
+        font-size: 22px;
+    }
+
+    .behavior-input {
+        min-height: 110px;
+    }
+}

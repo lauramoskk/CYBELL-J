@@ -1,0 +1,31 @@
+{
+  "alpha": 0.05,
+  "window_size": 50,
+  "overlap_pct": 75,
+  "fonte": "data\\mouse_events_metrics.csv com janelas geradas",
+  "fallback_metricas_brutas": true,
+  "filtro_window_overlap_aplicado": true,
+  "janelamento_fallback_aplicado": true,
+  "passo_eventos_teorico": 12.5,
+  "unidade_observacao": "usuario + sessao",
+  "usuarios_mouse": 2,
+  "usuarios_trackpad": 2,
+  "usuarios_comuns": [
+    "bianca",
+    "laura_oliveira"
+  ],
+  "mouse_sessoes": 60,
+  "trackpad_sessoes": 32,
+  "pares_mouse_trackpad": 6,
+  "testes_hipotese": [
+    "t pareado",
+    "Wilcoxon pareado",
+    "Benjamini-Hochberg"
+  ],
+  "estatisticas_descritivas": {
+    "desvio_padrao": "amostral (ddof=1)",
+    "coeficiente_variacao": "desvio_padrao / abs(media)",
+    "coeficiente_variacao_percentual": true
+  },
+  "interpretacao": "p_valor >= alpha nao rejeita normalidade; nao prova que a distribuicao seja normal."
+}

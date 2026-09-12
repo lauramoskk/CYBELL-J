@@ -1,0 +1,17 @@
+flask
+flask-sqlalchemy
+werkzeug
+flask-login
+flasgger
+pymongo
+python-dotenv
+flask-limiter
+flask-wtf
+gunicorn
+psycopg2-binary
+numpy
+pandas
+scikit-learn
+xgboost
+joblib
+scipy
