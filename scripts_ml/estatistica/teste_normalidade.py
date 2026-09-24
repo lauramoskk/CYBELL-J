@@ -36,6 +36,8 @@ RAW_METRICS_PATH = BASE_DIR / "data" / "mouse_events_metrics.csv"
 OUTPUT_DIR = BASE_DIR / "experimentos_normalizados" / "estatistica"
 OUTPUT_CSV = OUTPUT_DIR / "teste_normalidade.csv"
 OUTPUT_JSON = OUTPUT_DIR / "teste_normalidade.json"
+OUTPUT_DESCRIPTIVE = OUTPUT_DIR / "estatisticas_descritivas_mouse_trackpad.csv"
+OUTPUT_CV = OUTPUT_DIR / "comparacao_cv_mouse_trackpad.csv"
 
 WINDOW_SIZE = 50
 OVERLAP = 75
@@ -63,6 +65,19 @@ METADATA = {
     "device_high_confidence",
     "device_label_source",
     "target_user_device",
+    "event_type",
+    "device_type",
+    "user_id",
+    "user_key",
+    "timestamp",
+    "_t",
+    "time_gap",
+    "new_block",
+    "session_block",
+    "missing_session",
+    "prev_valid_session",
+    "_x",
+    "_y",
 }
 
 
@@ -83,6 +98,14 @@ def load_modality(path: Path, modality: str) -> pd.DataFrame:
         raise ValueError(
             f"Base de {modality} sem colunas obrigatorias: "
             f"{', '.join(sorted(missing))}"
+        )
+
+    modality_columns = {"device_context", "device_type"}
+    if not modality_columns.intersection(df.columns):
+        raise ValueError(
+            f"Base de {modality} sem coluna de modalidade. "
+            "Informe um dataset separado de mouse/trackpad com "
+            "device_context ou device_type."
         )
 
     if "device_context" in df.columns:
@@ -120,6 +143,71 @@ def session_features(df: pd.DataFrame) -> pd.DataFrame:
         .reset_index()
     )
     return grouped
+
+
+def feature_names(*dataframes: pd.DataFrame) -> list[str]:
+    shared = set(dataframes[0].columns)
+    for dataframe in dataframes[1:]:
+        shared.intersection_update(dataframe.columns)
+    return sorted(
+        column
+        for column in shared
+        if column not in {"user", "session_id"}
+        and column not in METADATA
+        and pd.api.types.is_numeric_dtype(dataframes[0][column])
+    )
+
+
+def descriptive_statistics(
+    mouse: pd.DataFrame,
+    trackpad: pd.DataFrame,
+    features: list[str],
+) -> pd.DataFrame:
+    rows: list[dict[str, object]] = []
+    for modality, dataframe in (("mouse", mouse), ("trackpad", trackpad)):
+        for feature in features:
+            values = pd.to_numeric(dataframe[feature], errors="coerce")
+            values = values.replace([np.inf, -np.inf], np.nan).dropna()
+            mean = float(values.mean()) if len(values) else None
+            std = float(values.std(ddof=1)) if len(values) > 1 else None
+            cv = (
+                float(std / abs(mean) * 100)
+                if mean is not None and std is not None and mean != 0
+                else None
+            )
+            rows.append(
+                {
+                    "modalidade": modality,
+                    "feature": feature,
+                    "n_sessoes": int(len(values)),
+                    "media": mean,
+                    "desvio_padrao": std,
+                    "coeficiente_variacao_pct": cv,
+                }
+            )
+    return pd.DataFrame(rows)
+
+
+def compare_cv(descriptive: pd.DataFrame) -> pd.DataFrame:
+    pivot = descriptive.pivot(
+        index="feature",
+        columns="modalidade",
+        values="coeficiente_variacao_pct",
+    ).reset_index()
+    pivot = pivot.rename(columns={"mouse": "mouse_cv_pct", "trackpad": "trackpad_cv_pct"})
+    pivot["diferenca_trackpad_menos_mouse_pct"] = (
+        pivot["trackpad_cv_pct"] - pivot["mouse_cv_pct"]
+    )
+    pivot["menor_variabilidade"] = np.select(
+        [
+            pivot["mouse_cv_pct"].isna() | pivot["trackpad_cv_pct"].isna(),
+            pivot["mouse_cv_pct"] < pivot["trackpad_cv_pct"],
+            pivot["trackpad_cv_pct"] < pivot["mouse_cv_pct"],
+        ],
+        ["indisponivel", "mouse", "trackpad"],
+        default="igual",
+    )
+    return pivot
 
 
 def run_tests(values: pd.Series) -> dict[str, object]:
@@ -204,10 +292,7 @@ def run_hypothesis_tests(
         how="inner",
         suffixes=("_mouse", "_trackpad"),
     )
-    features = sorted(
-        set(mouse.columns).intersection(trackpad.columns)
-        - set(keys)
-    )
+    features = feature_names(mouse, trackpad)
     rows: list[dict[str, object]] = []
 
     for feature in features:
@@ -345,11 +430,7 @@ def main() -> None:
 
     rows: list[dict[str, object]] = []
     for modality, data in (("mouse", mouse), ("trackpad", trackpad)):
-        features = [
-            column
-            for column in data.columns
-            if column not in {"user", "session_id"}
-        ]
+        features = feature_names(data, data)
         for feature in features:
             row = {
                 "modalidade": modality,
@@ -360,8 +441,12 @@ def main() -> None:
 
     result = pd.DataFrame(rows)
     hypothesis = run_hypothesis_tests(mouse, trackpad)
+    descriptive = descriptive_statistics(mouse, trackpad, feature_names(mouse, trackpad))
+    cv_comparison = compare_cv(descriptive)
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     result.to_csv(OUTPUT_CSV, index=False, encoding="utf-8-sig")
+    descriptive.to_csv(OUTPUT_DESCRIPTIVE, index=False, encoding="utf-8-sig")
+    cv_comparison.to_csv(OUTPUT_CV, index=False, encoding="utf-8-sig")
     hypothesis.to_csv(
         OUTPUT_DIR / "testes_hipotese_mouse_trackpad.csv",
         index=False,
