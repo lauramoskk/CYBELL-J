@@ -1,0 +1,53 @@
+{
+  "experiment": "global_6_users",
+  "modality": "mouse",
+  "users": [
+    "Julia104soup",
+    "bianca",
+    "lala",
+    "laura_oliveira",
+    "lina",
+    "yass"
+  ],
+  "n_windows": 28115,
+  "n_features": 89,
+  "window_size": 50,
+  "overlap_pct": 75,
+  "normalization": "SimpleImputer(median) + StandardScaler",
+  "outer_cv": "StratifiedGroupKFold(n_splits=3)",
+  "inner_cv": "StratifiedGroupKFold(n_splits=2)",
+  "selection_metric": "macro_f1",
+  "best_algorithm": "XGBoost",
+  "best_params": {
+    "model__colsample_bytree": 0.85,
+    "model__learning_rate": 0.05,
+    "model__max_depth": 6,
+    "model__min_child_weight": 2,
+    "model__n_estimators": 350,
+    "model__subsample": 0.85
+  },
+  "outer_cv_metrics": {
+    "accuracy": 0.6568840638509347,
+    "balanced_accuracy": 0.6694403690142238,
+    "macro_f1": 0.6532312671272585,
+    "macro_precision": 0.6533652934881788,
+    "macro_recall": 0.6694403690142238,
+    "roc_auc_ovr_macro": 0.8728210844805507
+  },
+  "windows_per_user": {
+    "Julia104soup": 4012,
+    "bianca": 6263,
+    "lala": 5361,
+    "laura_oliveira": 3859,
+    "lina": 4489,
+    "yass": 4131
+  },
+  "sessions_per_user": {
+    "Julia104soup": 6,
+    "bianca": 6,
+    "lala": 4,
+    "laura_oliveira": 6,
+    "lina": 9,
+    "yass": 6
+  }
+}

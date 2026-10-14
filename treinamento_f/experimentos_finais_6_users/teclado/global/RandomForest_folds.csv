@@ -1,0 +1,4 @@
+fold,inner_macro_f1,best_params,accuracy,balanced_accuracy,macro_f1,macro_precision,macro_recall,roc_auc_ovr_macro
+1,0.653918260707979,"{""model__max_depth"": null, ""model__max_features"": 0.7, ""model__min_samples_leaf"": 2, ""model__n_estimators"": 400}",0.7686762778505898,0.6927075222777644,0.6930914562077994,0.7345671454296553,0.6927075222777644,0.9439962882477467
+2,0.5575884141620944,"{""model__max_depth"": null, ""model__max_features"": 0.7, ""model__min_samples_leaf"": 2, ""model__n_estimators"": 400}",0.7393715341959335,0.7417777551130477,0.7224788968534793,0.7157486537568455,0.7417777551130477,0.9520105723860309
+3,0.6310176273710166,"{""model__max_depth"": null, ""model__max_features"": ""sqrt"", ""model__min_samples_leaf"": 1, ""model__n_estimators"": 300}",0.7456567060458652,0.6696734822757789,0.6549044036718142,0.6618038993503409,0.6696734822757789,0.9128837050583544

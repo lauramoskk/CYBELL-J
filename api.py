@@ -1,110 +1,150 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, current_app
 from flask_login import login_required, current_user
 from werkzeug.security import check_password_hash
+
 from mongo import keystrokes_collection, mouse_events_collection
 from scripts_ml.inference.mouse_inference import prever_mouse
+
 import time
 
 
-# Cria o Blueprint para as rotas de API
+# Blueprint das rotas da API
 api_bp = Blueprint("api", __name__)
 
+
+# ============================================
+# Recebimento de dados comportamentais
+# ============================================
 
 @api_bp.route("/api/behavior", methods=["POST"])
 @login_required
 def receive_behavior_data():
-    """
-    Recebe dados comportamentais (teclado e mouse) do Front-end
-    com validação de segurança
-    ---
-    tags:
-      - Coleta de Dados
-    responses:
-      200:
-        description: Dados validados e salvos com sucesso no MongoDB
-      400:
-        description: Dados inválidos ou vazios
-      429:
-        description: Excesso de volume de eventos (Proteção Anti-Flood)
-    """
+    """Recebe, valida e armazena eventos comportamentais."""
 
-    data = request.get_json()
+    data = request.get_json(silent=True)
 
-    if not data:
+    if not isinstance(data, dict):
         return jsonify({
-            "error": "Nenhum dado recebido"
+            "status": "error",
+            "message": "Nenhum dado válido foi recebido."
         }), 400
 
     keyboard_data = data.get("keyboard", [])
     mouse_data = data.get("mouse", [])
     shortcuts_data = data.get("shortcuts", [])
 
-    # 1. Validação de Janela Vazia (Confiança Degradada)
+    # Valida os tipos recebidos
+    if not all(
+        isinstance(items, list)
+        for items in (
+            keyboard_data,
+            mouse_data,
+            shortcuts_data
+        )
+    ):
+        return jsonify({
+            "status": "error",
+            "message": "Os eventos devem ser enviados em listas."
+        }), 400
+
+    # Janela sem eventos
     if not keyboard_data and not mouse_data and not shortcuts_data:
         return jsonify({
             "status": "empty_window",
-            "message": "Nenhum dado biométrico recebido nesta janela."
+            "message": (
+                "Nenhum dado comportamental recebido nesta janela."
+            )
         }), 200
 
-    # 2. Segurança: Proteção Anti-Flood / Anti-Bot
-    # Limite de volume por lote
+    # Proteção de volume por requisição
+    print(
+        f"Eventos recebidos — mouse: {len(mouse_data)}, "
+        f"teclado: {len(keyboard_data)}"
+    )
+
     if len(mouse_data) > 400 or len(keyboard_data) > 200:
         return jsonify({
             "status": "security_violation",
             "message": "Volume excessivo de eventos detectado."
         }), 429
 
-    # 3. Sanitização e Vinculação Segura com o Usuário Logado
-    current_user_id = current_user.username
+    # O usuário vem da sessão autenticada,
+    # nunca do JSON enviado pelo navegador.
+    username = current_user.username
 
     sanitized_keyboard = []
-
-    for k in keyboard_data:
-        sanitized_keyboard.append({
-            "user": current_user_id,
-            "key": str(k.get("key", ""))[:5],
-            "event_type": str(k.get("event_type", "keydown")),
-            "timestamp": int(k.get("timestamp", time.time()))
-        })
-
     sanitized_mouse = []
-
-    for m in mouse_data:
-        x_val = float(m.get("x", 0.0))
-        y_val = float(m.get("y", 0.0))
-
-        # SEGURANÇA:
-        # Descarta coordenadas fora de uma tela convencional
-        # (ex: monitores de 4K até 3840x2160)
-        # Impedindo valores espaciais absurdos ou negativos inválidos
-        if 0 <= x_val <= 4000 and 0 <= y_val <= 3000:
-            sanitized_mouse.append({
-                "user": current_user_id,
-                "event_type": str(m.get("event_type", "")),
-                "device_type": str(m.get("device_type", "mouse")),
-                "x": x_val,
-                "y": y_val,
-                "delta_x": m.get("delta_x", 0),
-                "delta_y": m.get("delta_y", 0),
-                "timestamp": int(m.get("timestamp", time.time()))
-            })
-
     sanitized_shortcuts = []
 
-    for s in shortcuts_data:
-        hold_time = float(s.get("hold_time", 0.0))
+    try:
+        # Sanitização dos eventos de teclado
+        for event in keyboard_data:
+            if not isinstance(event, dict):
+                continue
 
-        if hold_time >= 0:
-            sanitized_shortcuts.append({
-                "user": current_user_id,
-                "key": str(s.get("key", "")),
-                "event_type": "shortcut",
-                "hold_time": hold_time,
-                "timestamp": int(s.get("timestamp", time.time()))
+            sanitized_keyboard.append({
+                "user": username,
+                "key": str(event.get("key", ""))[:5],
+                "event_type": str(
+                    event.get("event_type", "keydown")
+                )[:30],
+                "timestamp": int(
+                    event.get("timestamp", time.time())
+                )
             })
 
-    # 4. Persistência Segura no MongoDB com Tratamento de Erros
-    try:
+        # Sanitização dos eventos de mouse
+        for event in mouse_data:
+            if not isinstance(event, dict):
+                continue
+
+            x_val = float(event.get("x", 0.0))
+            y_val = float(event.get("y", 0.0))
+
+            if not (
+                0 <= x_val <= 4000
+                and 0 <= y_val <= 3000
+            ):
+                continue
+
+            sanitized_mouse.append({
+                "user": username,
+                "event_type": str(
+                    event.get("event_type", "")
+                )[:30],
+                "device_type": str(
+                    event.get("device_type", "mouse")
+                )[:20],
+                "x": x_val,
+                "y": y_val,
+                "delta_x": float(event.get("delta_x", 0)),
+                "delta_y": float(event.get("delta_y", 0)),
+                "timestamp": int(
+                    event.get("timestamp", time.time())
+                )
+            })
+
+        # Atalhos são armazenados na coleção de teclado
+        for event in shortcuts_data:
+            if not isinstance(event, dict):
+                continue
+
+            hold_time = float(event.get("hold_time", 0.0))
+
+            if hold_time < 0:
+                continue
+
+            sanitized_shortcuts.append({
+                "user": username,
+                "key": str(event.get("key", ""))[:20],
+                "event_type": "shortcut",
+                "hold_time": hold_time,
+                "timestamp": int(
+                    event.get("timestamp", time.time())
+                )
+            })
+
+        # Persistência no MongoDB
         if sanitized_keyboard:
             keystrokes_collection.insert_many(sanitized_keyboard)
 
@@ -114,44 +154,55 @@ def receive_behavior_data():
         if sanitized_shortcuts:
             keystrokes_collection.insert_many(sanitized_shortcuts)
 
-    except Exception as e:
+    except (TypeError, ValueError, OverflowError):
         return jsonify({
-            "error": "Erro ao persistir dados no banco NoSQL",
-            "details": str(e)
+            "status": "error",
+            "message": (
+                "Um ou mais eventos contêm valores inválidos."
+            )
+        }), 400
+
+    except Exception:
+        current_app.logger.exception(
+            "Erro ao persistir eventos comportamentais."
+        )
+
+        return jsonify({
+            "status": "error",
+            "message": "Erro ao salvar os dados comportamentais."
         }), 500
 
     return jsonify({
         "status": "success",
-        "message": "Dados biométricos validados e salvos no MongoDB"
+        "message": "Dados comportamentais salvos no MongoDB.",
+        "eventos_salvos": {
+            "teclado": len(sanitized_keyboard),
+            "mouse": len(sanitized_mouse),
+            "atalhos": len(sanitized_shortcuts)
+        }
     }), 200
 
+
+# ============================================
+# Reautenticação por senha
+# ============================================
 
 @api_bp.route("/api/reauth", methods=["POST"])
 @login_required
 def reauth():
-    """
-    Reautenticação do usuário durante a sessão (confiança degradada)
-    ---
-    tags:
-      - Autenticação
-    parameters:
-      - name: password
-        in: formData
-        type: string
-        required: true
-    responses:
-      200:
-        description: Senha correta, sessão restaurada
-      400:
-        description: Senha não enviada
-      401:
-        description: Senha incorreta
-    """
+    """Confirma a senha do usuário autenticado."""
 
-    data = request.get_json(silent=True) or {}
+    data = request.get_json(silent=True)
+
+    if not isinstance(data, dict):
+        return jsonify({
+            "status": "error",
+            "message": "Dados de reautenticação inválidos."
+        }), 400
+
     password = data.get("password", "")
 
-    if not password:
+    if not isinstance(password, str) or not password:
         return jsonify({
             "status": "error",
             "message": "Senha não informada."
@@ -169,46 +220,42 @@ def reauth():
     }), 200
 
 
+# ============================================
+# Verificação comportamental pela IA
+# ============================================
+
 @api_bp.route("/api/verify", methods=["POST"])
 @login_required
 def verify_ia():
     """
-    Verificação da Inteligência Artificial
-    ---
-    tags:
-      - Inteligência Artificial
-    responses:
-      200:
-        description: Retorna o resultado da análise comportamental
-      400:
-        description: Dados insuficientes para análise
-      500:
-        description: Erro durante a análise
+    Analisa os eventos de mouse associados ao usuário autenticado.
+
+    A previsão do modelo não é considerada prova definitiva
+    da identidade. Os critérios utilizados nesta versão são
+    provisórios e precisam ser validados experimentalmente.
     """
 
-    TAMANHO_JANELA = 50
-
+    tamanho_janela = 50
     usuario_logado = current_user.username
 
     try:
-        # Busca os eventos de mouse do usuário atualmente logado
+        # Busca somente eventos associados à conta autenticada.
         eventos = list(
             mouse_events_collection
             .find({"user": usuario_logado})
             .sort("timestamp", -1)
-            .limit(TAMANHO_JANELA)
+            .limit(tamanho_janela)
         )
 
-        # Verifica se há eventos suficientes
-        if len(eventos) < TAMANHO_JANELA:
+        # Verifica se existem dados suficientes
+        if len(eventos) < tamanho_janela:
             return jsonify({
                 "status": "insufficient_data",
                 "score": 0.0,
                 "resultado": "indisponivel",
                 "mensagem": (
-                    f"Dados insuficientes para análise. "
-                    f"São necessários pelo menos {TAMANHO_JANELA} "
-                    f"eventos de mouse."
+                    f"Dados insuficientes. São necessários "
+                    f"{tamanho_janela} eventos de mouse."
                 ),
                 "eventos_analisados": len(eventos)
             }), 400
@@ -217,40 +264,128 @@ def verify_ia():
         for evento in eventos:
             evento.pop("_id", None)
 
-        # Executa a inferência real do modelo
+        # Executa a inferência
         resultado_ia = prever_mouse(eventos)
 
-        usuario_previsto = resultado_ia["usuario_previsto"]
-        confianca = resultado_ia["confianca"]
-        threshold = resultado_ia["threshold"]
+        usuario_previsto = str(
+            resultado_ia["usuario_previsto"]
+        )
 
-        # O modelo considera conhecido somente quando
-        # a confiança ultrapassa o threshold configurado.
-        if resultado_ia["resultado"] == "conhecido":
-            status_sessao = "legitimo"
+        confianca = float(
+            resultado_ia["confianca"]
+        )
+
+        probabilidades = {
+            str(usuario): float(probabilidade)
+            for usuario, probabilidade
+            in resultado_ia["probabilidades"].items()
+        }
+
+        # Normaliza os nomes para a comparação
+        usuario_previsto_normalizado = (
+            usuario_previsto.strip().casefold()
+        )
+
+        usuario_logado_normalizado = (
+            str(usuario_logado).strip().casefold()
+        )
+
+        # Ordena as probabilidades para calcular
+        # a diferença entre a primeira e a segunda classe.
+        probabilidades_ordenadas = sorted(
+            probabilidades.values(),
+            reverse=True
+        )
+
+        maior_probabilidade = (
+            probabilidades_ordenadas[0]
+            if probabilidades_ordenadas
+            else 0.0
+        )
+
+        segunda_probabilidade = (
+            probabilidades_ordenadas[1]
+            if len(probabilidades_ordenadas) > 1
+            else 0.0
+        )
+
+        margem = (
+            maior_probabilidade - segunda_probabilidade
+        )
+
+        # Critério provisório:
+        # confiança mínima de 80% e margem mínima de 20 pontos percentuais.
+        #
+        # Estes valores são heurísticos e não estão validados.
+        # Não devem ser tratados como garantia de identidade.
+
+        if (
+            usuario_previsto_normalizado
+            == usuario_logado_normalizado
+        ):
+            resultado = "inconclusivo"
+
+            mensagem = (
+                "O modelo previu o usuário autenticado, mas ainda "
+                "não existe um critério de confiança validado "
+                "para confirmar a identidade."
+            )
+
+        elif (
+            confianca >= 0.80
+            and margem >= 0.20
+        ):
+            resultado = "suspeito"
+
+            mensagem = (
+                "O modelo previu uma classe diferente da conta "
+                "autenticada, com confiança e margem elevadas "
+                "segundo um critério provisório. A divergência "
+                "precisa ser avaliada e não comprova, por si só, "
+                "que outra pessoa esteja utilizando a conta."
+            )
+
         else:
-            status_sessao = "suspeito"
+            resultado = "inconclusivo"
+
+            mensagem = (
+                "O modelo previu uma classe diferente da conta "
+                "autenticada, mas a confiança ou a margem entre "
+                "as duas maiores probabilidades não atende ao "
+                "critério provisório. Não é possível concluir "
+                "que exista uma divergência real de identidade."
+            )
 
         return jsonify({
             "status": "success",
             "score": confianca,
-            "resultado": status_sessao,
+            "resultado": resultado,
             "usuario_previsto": usuario_previsto,
-            "threshold": threshold,
-            "probabilidades": resultado_ia["probabilidades"],
+            "probabilidades": probabilidades,
             "eventos_analisados": len(eventos),
-            "mensagem": "Análise comportamental concluída"
+            "mensagem": mensagem
         }), 200
 
-    except ValueError as e:
+    except ValueError as error:
+        current_app.logger.warning(
+            "Erro de valor durante a verificação comportamental: %s",
+            error
+        )
+
         return jsonify({
             "status": "error",
-            "message": str(e)
+            "message": (
+                "Não foi possível processar os dados "
+                "da verificação."
+            )
         }), 400
 
-    except Exception as e:
+    except Exception:
+        current_app.logger.exception(
+            "Erro durante a verificação de identidade."
+        )
+
         return jsonify({
             "status": "error",
-            "message": "Erro durante a análise comportamental.",
-            "details": str(e)
+            "message": "Erro durante a análise comportamental."
         }), 500
