@@ -15,3 +15,4 @@ scikit-learn
 xgboost
 joblib
 scipy
+psycopg[binary]
