@@ -1,16 +1,17 @@
 from flask import Blueprint, request, jsonify, current_app
 from flask_login import login_required, current_user
 from werkzeug.security import check_password_hash
-
 from mongo import keystrokes_collection, mouse_events_collection
 from scripts_ml.inference.mouse_inference import prever_mouse
-
+from scripts_ml.inference.keyboard_inference import prever_teclado
+import math
 import time
 
-
+# ============================================
 # Blueprint das rotas da API
-api_bp = Blueprint("api", __name__)
+# ============================================
 
+api_bp = Blueprint("api", __name__)
 
 # ============================================
 # Recebimento de dados comportamentais
@@ -20,7 +21,6 @@ api_bp = Blueprint("api", __name__)
 @login_required
 def receive_behavior_data():
     """Recebe, valida e armazena eventos comportamentais."""
-
     data = request.get_json(silent=True)
 
     if not isinstance(data, dict):
@@ -33,34 +33,20 @@ def receive_behavior_data():
     mouse_data = data.get("mouse", [])
     shortcuts_data = data.get("shortcuts", [])
 
-    # Valida os tipos recebidos
     if not all(
         isinstance(items, list)
-        for items in (
-            keyboard_data,
-            mouse_data,
-            shortcuts_data
-        )
+        for items in (keyboard_data, mouse_data, shortcuts_data)
     ):
         return jsonify({
             "status": "error",
             "message": "Os eventos devem ser enviados em listas."
         }), 400
 
-    # Janela sem eventos
     if not keyboard_data and not mouse_data and not shortcuts_data:
         return jsonify({
             "status": "empty_window",
-            "message": (
-                "Nenhum dado comportamental recebido nesta janela."
-            )
+            "message": "Nenhum dado comportamental recebido nesta janela."
         }), 200
-
-    # Proteção de volume por requisição
-    print(
-        f"Eventos recebidos — mouse: {len(mouse_data)}, "
-        f"teclado: {len(keyboard_data)}"
-    )
 
     if len(mouse_data) > 400 or len(keyboard_data) > 200:
         return jsonify({
@@ -68,80 +54,77 @@ def receive_behavior_data():
             "message": "Volume excessivo de eventos detectado."
         }), 429
 
-    # O usuário vem da sessão autenticada,
-    # nunca do JSON enviado pelo navegador.
     username = current_user.username
-
     sanitized_keyboard = []
     sanitized_mouse = []
     sanitized_shortcuts = []
 
     try:
-        # Sanitização dos eventos de teclado
+        # Eventos de teclado
         for event in keyboard_data:
             if not isinstance(event, dict):
                 continue
 
+            timestamp = int(event.get("timestamp", time.time()))
+
             sanitized_keyboard.append({
                 "user": username,
-                "key": str(event.get("key", ""))[:5],
+                "key": str(event.get("key", ""))[:30],
                 "event_type": str(
                     event.get("event_type", "keydown")
                 )[:30],
-                "timestamp": int(
-                    event.get("timestamp", time.time())
-                )
+                "timestamp": timestamp
             })
 
-        # Sanitização dos eventos de mouse
+        # Eventos de mouse
         for event in mouse_data:
             if not isinstance(event, dict):
                 continue
 
             x_val = float(event.get("x", 0.0))
             y_val = float(event.get("y", 0.0))
+            delta_x = float(event.get("delta_x", 0.0))
+            delta_y = float(event.get("delta_y", 0.0))
+            timestamp = int(event.get("timestamp", time.time()))
 
-            if not (
-                0 <= x_val <= 4000
-                and 0 <= y_val <= 3000
-            ):
+            if not all(math.isfinite(value) for value in (
+                x_val, y_val, delta_x, delta_y
+            )):
+                continue
+
+            if not (0 <= x_val <= 4000 and 0 <= y_val <= 3000):
                 continue
 
             sanitized_mouse.append({
                 "user": username,
-                "event_type": str(
-                    event.get("event_type", "")
-                )[:30],
+                "event_type": str(event.get("event_type", ""))[:30],
                 "device_type": str(
                     event.get("device_type", "mouse")
                 )[:20],
                 "x": x_val,
                 "y": y_val,
-                "delta_x": float(event.get("delta_x", 0)),
-                "delta_y": float(event.get("delta_y", 0)),
-                "timestamp": int(
-                    event.get("timestamp", time.time())
-                )
+                "delta_x": delta_x,
+                "delta_y": delta_y,
+                "timestamp": timestamp
             })
 
-        # Atalhos são armazenados na coleção de teclado
+        # Atalhos de teclado
         for event in shortcuts_data:
             if not isinstance(event, dict):
                 continue
 
             hold_time = float(event.get("hold_time", 0.0))
+            timestamp = int(event.get("timestamp", time.time()))
 
-            if hold_time < 0:
+            if not math.isfinite(hold_time) or hold_time < 0:
                 continue
 
             sanitized_shortcuts.append({
                 "user": username,
-                "key": str(event.get("key", ""))[:20],
+                "key": str(event.get("key", ""))[:30],
                 "event_type": "shortcut",
                 "hold_time": hold_time,
-                "timestamp": int(
-                    event.get("timestamp", time.time())
-                )
+                "timestamp": timestamp
             })
 
         # Persistência no MongoDB
@@ -157,16 +140,13 @@ def receive_behavior_data():
     except (TypeError, ValueError, OverflowError):
         return jsonify({
             "status": "error",
-            "message": (
-                "Um ou mais eventos contêm valores inválidos."
-            )
+            "message": "Um ou mais eventos contêm valores inválidos."
         }), 400
 
     except Exception:
         current_app.logger.exception(
             "Erro ao persistir eventos comportamentais."
         )
-
         return jsonify({
             "status": "error",
             "message": "Erro ao salvar os dados comportamentais."
@@ -191,7 +171,6 @@ def receive_behavior_data():
 @login_required
 def reauth():
     """Confirma a senha do usuário autenticado."""
-
     data = request.get_json(silent=True)
 
     if not isinstance(data, dict):
@@ -221,6 +200,41 @@ def reauth():
 
 
 # ============================================
+# Funções auxiliares de avaliação
+# ============================================
+
+def calcular_margem(probabilidades):
+    """Retorna a diferença entre as duas maiores probabilidades."""
+    valores = sorted(probabilidades.values(), reverse=True)
+
+    if not valores:
+        return 0.0
+
+    maior = valores[0]
+    segunda = valores[1] if len(valores) > 1 else 0.0
+
+    return float(maior - segunda)
+
+
+def normalizar_usuario(usuario):
+    """Normaliza o nome para comparação sem diferenciar maiúsculas."""
+    return str(usuario).strip().casefold()
+
+
+def avaliar_confianca(confianca, margem):
+    """
+    Critério provisório de confiança e margem.
+    Os limiares precisam ser validados com dados independentes.
+    """
+    return (
+        math.isfinite(confianca)
+        and math.isfinite(margem)
+        and confianca >= 0.80
+        and margem >= 0.20
+    )
+
+
+# ============================================
 # Verificação comportamental pela IA
 # ============================================
 
@@ -228,163 +242,205 @@ def reauth():
 @login_required
 def verify_ia():
     """
-    Analisa os eventos de mouse associados ao usuário autenticado.
+    Compara previsões de mouse e teclado.
 
-    A previsão do modelo não é considerada prova definitiva
-    da identidade. Os critérios utilizados nesta versão são
-    provisórios e precisam ser validados experimentalmente.
+    Os resultados dos modelos não comprovam, por si só, a identidade
+    de uma pessoa. Os critérios de decisão são provisórios.
     """
-
     tamanho_janela = 50
-    usuario_logado = current_user.username
+    usuario_logado = str(current_user.username).strip()
+    usuario_logado_normalizado = normalizar_usuario(usuario_logado)
 
     try:
-        # Busca somente eventos associados à conta autenticada.
-        eventos = list(
+        # 1. Buscar os eventos de mouse
+        eventos_mouse = list(
             mouse_events_collection
-            .find({"user": usuario_logado})
+            .find({"user": current_user.username})
             .sort("timestamp", -1)
             .limit(tamanho_janela)
         )
 
-        # Verifica se existem dados suficientes
-        if len(eventos) < tamanho_janela:
+        # 2. Buscar os eventos de teclado
+        eventos_teclado = list(
+            keystrokes_collection
+            .find({"user": current_user.username})
+            .sort("timestamp", -1)
+            .limit(tamanho_janela)
+        )
+
+        # 3. Verificar se há dados suficientes
+        if (
+            len(eventos_mouse) < tamanho_janela
+            or len(eventos_teclado) < tamanho_janela
+        ):
             return jsonify({
                 "status": "insufficient_data",
-                "score": 0.0,
                 "resultado": "indisponivel",
+                "eventos_mouse_analisados": len(eventos_mouse),
+                "eventos_teclado_analisados": len(eventos_teclado),
                 "mensagem": (
-                    f"Dados insuficientes. São necessários "
-                    f"{tamanho_janela} eventos de mouse."
-                ),
-                "eventos_analisados": len(eventos)
+                    "Dados insuficientes para a verificação conjunta. "
+                    f"São necessários {tamanho_janela} eventos de mouse "
+                    f"e {tamanho_janela} eventos de teclado."
+                )
             }), 400
 
-        # Remove o identificador interno do MongoDB
-        for evento in eventos:
+        # Remover o identificador interno do MongoDB
+        for evento in eventos_mouse:
             evento.pop("_id", None)
 
-        # Executa a inferência
-        resultado_ia = prever_mouse(eventos)
+        for evento in eventos_teclado:
+            evento.pop("_id", None)
 
-        usuario_previsto = str(
-            resultado_ia["usuario_previsto"]
-        )
+        # 4. Executar os dois modelos
+        resultado_mouse = prever_mouse(eventos_mouse)
+        resultado_teclado = prever_teclado(eventos_teclado)
 
-        confianca = float(
-            resultado_ia["confianca"]
-        )
+        usuario_mouse = str(
+            resultado_mouse["usuario_previsto"]
+        ).strip()
 
-        probabilidades = {
+        usuario_teclado = str(
+            resultado_teclado["usuario_previsto"]
+        ).strip()
+
+        confianca_mouse = float(resultado_mouse["confianca"])
+        confianca_teclado = float(resultado_teclado["confianca"])
+
+        probabilidades_mouse = {
             str(usuario): float(probabilidade)
             for usuario, probabilidade
-            in resultado_ia["probabilidades"].items()
+            in resultado_mouse["probabilidades"].items()
         }
 
-        # Normaliza os nomes para a comparação
-        usuario_previsto_normalizado = (
-            usuario_previsto.strip().casefold()
-        )
+        probabilidades_teclado = {
+            str(usuario): float(probabilidade)
+            for usuario, probabilidade
+            in resultado_teclado["probabilidades"].items()
+        }
 
-        usuario_logado_normalizado = (
-            str(usuario_logado).strip().casefold()
-        )
-
-        # Ordena as probabilidades para calcular
-        # a diferença entre a primeira e a segunda classe.
-        probabilidades_ordenadas = sorted(
-            probabilidades.values(),
-            reverse=True
-        )
-
-        maior_probabilidade = (
-            probabilidades_ordenadas[0]
-            if probabilidades_ordenadas
-            else 0.0
-        )
-
-        segunda_probabilidade = (
-            probabilidades_ordenadas[1]
-            if len(probabilidades_ordenadas) > 1
-            else 0.0
-        )
-
-        margem = (
-            maior_probabilidade - segunda_probabilidade
-        )
-
-        # Critério provisório:
-        # confiança mínima de 80% e margem mínima de 20 pontos percentuais.
-        #
-        # Estes valores são heurísticos e não estão validados.
-        # Não devem ser tratados como garantia de identidade.
-
-        if (
-            usuario_previsto_normalizado
-            == usuario_logado_normalizado
+        # 5. Validar as probabilidades
+        for nome_modelo, confianca, probabilidades in (
+            ("mouse", confianca_mouse, probabilidades_mouse),
+            ("teclado", confianca_teclado, probabilidades_teclado)
         ):
-            resultado = "inconclusivo"
+            valores = list(probabilidades.values())
 
-            mensagem = (
-                "O modelo previu o usuário autenticado, mas ainda "
-                "não existe um critério de confiança validado "
-                "para confirmar a identidade."
-            )
+            if (
+                not math.isfinite(confianca)
+                or not 0.0 <= confianca <= 1.0
+                or not valores
+                or any(
+                    not math.isfinite(valor)
+                    or not 0.0 <= valor <= 1.0
+                    for valor in valores
+                )
+            ):
+                raise ValueError(
+                    f"Probabilidades inválidas retornadas pelo modelo "
+                    f"de {nome_modelo}."
+                )
 
+        # 6. Calcular as margens
+        margem_mouse = calcular_margem(probabilidades_mouse)
+        margem_teclado = calcular_margem(probabilidades_teclado)
+
+        mouse_normalizado = normalizar_usuario(usuario_mouse)
+        teclado_normalizado = normalizar_usuario(usuario_teclado)
+
+        mouse_forte = avaliar_confianca(
+            confianca_mouse,
+            margem_mouse
+        )
+
+        teclado_forte = avaliar_confianca(
+            confianca_teclado,
+            margem_teclado
+        )
+
+        # 7. Decidir o resultado
+
+        # Confirmação provisória: ambos preveem o usuário autenticado
+        # e atendem aos critérios mínimos de confiança e margem.
+        if (
+            mouse_normalizado == usuario_logado_normalizado
+            and teclado_normalizado == usuario_logado_normalizado
+        ):
+            if mouse_forte and teclado_forte:
+                resultado = "confirmado"
+                mensagem = (
+                    "Os modelos de mouse e teclado previram o usuário "
+                    "autenticado e atenderam aos critérios provisórios "
+                    "de confiança e margem."
+                )
+            else:
+                resultado = "inconclusivo"
+                mensagem = (
+                    "Os modelos de mouse e teclado previram o usuário "
+                    "autenticado, mas um ou ambos não atingiram os "
+                    "critérios provisórios de confiança e margem."
+                )
+
+        # Suspeita: ambos preveem o mesmo usuário diferente do autenticado
+        # e ambos atendem aos critérios mínimos.
         elif (
-            confianca >= 0.80
-            and margem >= 0.20
+            mouse_normalizado == teclado_normalizado
+            and mouse_normalizado != usuario_logado_normalizado
+            and mouse_forte
+            and teclado_forte
         ):
             resultado = "suspeito"
-
             mensagem = (
-                "O modelo previu uma classe diferente da conta "
-                "autenticada, com confiança e margem elevadas "
-                "segundo um critério provisório. A divergência "
-                "precisa ser avaliada e não comprova, por si só, "
-                "que outra pessoa esteja utilizando a conta."
+                "Os modelos de mouse e teclado previram o mesmo usuário "
+                "diferente da conta autenticada. Ambos atenderam aos "
+                "critérios provisórios de confiança e margem. Isso é um "
+                "alerta para avaliação, não uma prova de identidade."
             )
 
+        # Divergência ou confiança insuficiente
         else:
             resultado = "inconclusivo"
-
             mensagem = (
-                "O modelo previu uma classe diferente da conta "
-                "autenticada, mas a confiança ou a margem entre "
-                "as duas maiores probabilidades não atende ao "
-                "critério provisório. Não é possível concluir "
-                "que exista uma divergência real de identidade."
+                "Os modelos não apresentaram concordância suficiente "
+                "para sinalizar suspeita segundo os critérios "
+                "provisórios. É necessária avaliação adicional."
             )
 
+        # 8. Retornar os resultados
         return jsonify({
             "status": "success",
-            "score": confianca,
             "resultado": resultado,
-            "usuario_previsto": usuario_previsto,
-            "probabilidades": probabilidades,
-            "eventos_analisados": len(eventos),
+            "usuario_autenticado": usuario_logado,
+            "usuario_previsto_mouse": usuario_mouse,
+            "score_mouse": confianca_mouse,
+            "margem_mouse": margem_mouse,
+            "probabilidades_mouse": probabilidades_mouse,
+            "usuario_previsto_teclado": usuario_teclado,
+            "score_teclado": confianca_teclado,
+            "margem_teclado": margem_teclado,
+            "probabilidades_teclado": probabilidades_teclado,
+            "eventos_mouse_analisados": len(eventos_mouse),
+            "eventos_teclado_analisados": len(eventos_teclado),
             "mensagem": mensagem
         }), 200
 
     except ValueError as error:
         current_app.logger.warning(
-            "Erro de valor durante a verificação comportamental: %s",
+            "Dados inválidos na verificação comportamental: %s",
             error
         )
-
         return jsonify({
             "status": "error",
             "message": (
                 "Não foi possível processar os dados "
-                "da verificação."
+                "da verificação comportamental."
             )
         }), 400
 
     except Exception:
         current_app.logger.exception(
-            "Erro durante a verificação de identidade."
+            "Erro durante a verificação de mouse e teclado."
         )
-
         return jsonify({
             "status": "error",
             "message": "Erro durante a análise comportamental."
