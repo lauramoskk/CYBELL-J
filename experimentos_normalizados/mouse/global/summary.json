@@ -1,18 +1,55 @@
 {
-  "best_algorithm": "RandomForest",
+  "experiment": "global_6_users_smote",
+  "modality": "mouse",
+  "users": [
+    "Julia104soup",
+    "bianca",
+    "lala",
+    "laura_oliveira",
+    "lina",
+    "yass"
+  ],
+  "n_original_windows": 28115,
+  "n_features": 89,
+  "window_size": 50,
+  "overlap_pct": 75,
+  "normalization": "SimpleImputer(median) + StandardScaler",
+  "balancing": "SMOTE inside training folds only",
+  "sampling_strategy": "auto",
+  "outer_cv": "StratifiedGroupKFold(n_splits=3)",
+  "inner_cv": "StratifiedGroupKFold(n_splits=2)",
+  "selection_metric": "macro_f1",
+  "best_algorithm": "XGBoost",
   "best_params": {
-    "model__max_depth": null,
-    "model__max_features": 0.7,
-    "model__min_samples_leaf": 2,
-    "model__n_estimators": 400
+    "model__colsample_bytree": 0.8,
+    "model__learning_rate": 0.1,
+    "model__max_depth": 4,
+    "model__min_child_weight": 1,
+    "model__n_estimators": 300,
+    "model__subsample": 0.9
   },
-  "metrics": {
-    "accuracy": 0.9995294337965902,
-    "balanced_accuracy": 0.9995505998098165,
-    "macro_f1": 0.9995275828216622,
-    "precision": 0.9995054275323687,
-    "recall": 0.9995505998098165,
-    "auc": 1.0
+  "outer_cv_metrics": {
+    "accuracy": 0.6561629642296656,
+    "balanced_accuracy": 0.6691792082218151,
+    "macro_f1": 0.6520270317395965,
+    "macro_precision": 0.6537020416772629,
+    "macro_recall": 0.6691792082218151,
+    "roc_auc_ovr_macro": 0.8754451433846783
   },
-  "unknown_threshold": 0.94
+  "windows_per_user_original": {
+    "Julia104soup": 4012,
+    "bianca": 6263,
+    "lala": 5361,
+    "laura_oliveira": 3859,
+    "lina": 4489,
+    "yass": 4131
+  },
+  "sessions_per_user": {
+    "Julia104soup": 6,
+    "bianca": 6,
+    "lala": 4,
+    "laura_oliveira": 6,
+    "lina": 9,
+    "yass": 6
+  }
 }

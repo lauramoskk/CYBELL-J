@@ -16,3 +16,4 @@ xgboost
 joblib
 scipy
 psycopg[binary]
+imbalanced-learn==0.14.2
